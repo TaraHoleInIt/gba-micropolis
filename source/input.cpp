@@ -26,3 +26,15 @@ bool inputIsDown( int key ) {
 bool inputIsUp( int key ) {
     return ( up & key ) != 0;
 }
+
+uint32_t inputHeld( void ) {
+    return held;
+}
+
+uint32_t inputDown( void ) {
+    return pressed;
+}
+
+uint32_t inputUp( void ) {
+    return up;
+}

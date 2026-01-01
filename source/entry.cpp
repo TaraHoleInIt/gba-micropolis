@@ -21,6 +21,11 @@
 #include "gfx.h"
 #include "vram_queue.h"
 #include "fat_rom.h"
+#include "text_and_debug.h"
+
+int gettimeofday( struct timeval* tv, void* tzp );
+uint32_t generateEntropy( void );
+void irqHBlank( void );
 
 EWRAM_DATA Micropolis sim;
 
@@ -36,10 +41,12 @@ static uint32_t tslowest = 0;
 static uint32_t tfastest = 0;
 static uint32_t tLast = 0;
 
+static uint32_t seed = 0;
+
 int gettimeofday( struct timeval* tv, void* tzp ) {
 	uint32_t timeNow = timerMillis( );
 
-	tv->tv_sec = timeNow / 1000;
+	tv->tv_sec = ( timeNow / 1000 ) + seed;
 	tv->tv_usec = timeNow * 1000;
 
 	return 0;
@@ -51,9 +58,9 @@ void irqVBlank( void ) {
 	uint32_t t = 0;
 
 	inputUpdateVBlank( );
-	tileEngineVBlank( );
 
 	a = timerMillis( );
+		tileEngineVBlank( );
 		tileEngineUpdate( sim );
 		processTileQueue( );
 	b = timerMillis( );
@@ -71,6 +78,39 @@ void irqVBlank( void ) {
 	frameCount++;
 }
 
+uint32_t generateEntropy( void ) {
+	int y = ( ( SCREEN_HEIGHT / 8 ) / 2 ) - 2;
+	uint32_t tickNow = 0;
+	uint32_t result = 0;
+	uint32_t lastHeld = 0;
+	uint32_t held = 0;
+
+	textPrintfCenter( y, "Generating entropy..." );
+	textPrintfCenter( y + 1, "Mash buttons for a while." );
+	textPrintfCenter( y + 2, "Press START to finish." );
+
+	do {
+		VBlankIntrWait( );
+
+		tickNow = timerMillis( );
+		held = inputHeld( );
+
+		if ( held != lastHeld ) {
+			result |= tickNow;
+			result <<= 8;
+			result |= held;
+			result <<= 8;
+
+			lastHeld = held;
+		}
+	} while ( ! ( held & KEY_START) );
+
+	// Clear the screen
+	textPrintf( "\x1b[2J" );
+
+	return result;
+}
+
 //---------------------------------------------------------------------------------
 // Program entry point
 //---------------------------------------------------------------------------------
@@ -79,32 +119,19 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
-	uint32_t a = 0;
-	uint32_t b = 0;
 
-	mgba_console_open( );
-
-	iprintf( "Built %s at %s\nReady...\n\n", __DATE__, __TIME__ );
+	REG_DISPCNT = 0;
 
 	fatROMInit( );
 
-	//FILE* fp = nullptr;
-
-	//fp = fopen( "rom:/snro.111", "rb" );
-
-	//iprintf( "fp = %p\n", fp );
-
-	// the vblank interrupt must be enabled for VBlankIntrWait() to work
-	// since the default dispatcher handles the bios flags no vblank handler
-	// is required
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlank );
 	irqEnable( IRQ_VBLANK );
 
 	timerInit( );
 
-	for ( int i = 0; i < REG_VCOUNT; i++ )
-		asm volatile( "nop" );
+	textAndDebugInit( );
+	seed = generateEntropy( );
 
 	tileEngineInit( );
 
@@ -118,10 +145,8 @@ int main( void ) {
 
 	while (1) {
 		VBlankIntrWait( );
-
 		tickNow = timerMillis( );
 
-		a = timerMillis( );
 		if ( tickNow >= nextSimTick ) {
 			sim.simTick( );
 			sim.simUpdate( );
@@ -130,22 +155,11 @@ int main( void ) {
 		}
 
 		if ( tickNow >= nextAnimationTime ) {
-			// nothing yet
 			nextAnimationTime = tickNow + 200;
-			
 			sim.animateTiles( );
 		}
-		b = timerMillis( );
 
-		//iprintf( "Sim tick took %lums\n", ( b - a ) );
-
-		a = timerMillis( );
-		//tileEngineUpdate( sim );
-		b = timerMillis( );
-
-		//iprintf( "Tile engine took %lums\n", ( b - a ) );
-
-		//iprintf( "Tile updates times (taken, slowest, fastest): [%lu, %lu, %lu]\n", tLast, tslowest, tfastest );
+		textPrintfCenter( 0, "FS: %lu, SL: %lu, LST: %lu       ", tfastest, tslowest, tLast );
 	}
 }
 

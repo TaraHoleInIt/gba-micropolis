@@ -13,6 +13,8 @@
 #include "timer.h"
 #include "input.h"
 #include "gfx.h"
+#include "config.h"
+#include "text_and_debug.h"
 
 class MetaTile;
 
@@ -128,28 +130,42 @@ static volatile int scrollTileY = 0;
 static volatile int scrollX = 0;
 static volatile int scrollY = 0;
 
+static volatile int tileEngineReady = 0;
+
 void tileEngineInit( void ) {
-	SetMode( MODE_0 | BG0_ON );
-	BGCTRL[ 0 ] = BG_16_COLOR | BG_SIZE_0 | BG_MAP_BASE( 31 ) | BG_TILE_BASE( 0 );
+	REG_DISPCNT |= GameBG_Enable;
+	BGCTRL[ 0 ] = BG_16_COLOR | BG_SIZE_0 | BG_MAP_BASE( 31 ) | BG_TILE_BASE( 0 ) | BG_PRIORITY( 3 );
 
 	dmaCopy( __tiles_pal_bin, BG_PALETTE, __tiles_pal_bin_len );
-}
-
-void tileEngineTest( void ) {
+    tileEngineReady = 1;
 }
 
 void tileEngineVBlank( void ) {
+    int dx = 0;
+    int dy = 0;
+
+    if ( ! tileEngineReady )
+        return;
+
     if ( inputIsHeld( KEY_RIGHT ) )
-        scrollX++;
+        dx = 1;
 
     if ( inputIsHeld( KEY_LEFT ) )
-        scrollX--;
+        dx = -1;
 
     if ( inputIsHeld( KEY_DOWN ) )
-        scrollY++;
+        dy = 1;
 
     if ( inputIsHeld( KEY_UP ) )
-        scrollY--;
+        dy = -1;
+
+    if ( inputIsHeld( KEY_R ) ) {
+        dx*= 2;
+        dy*= 2;
+    }
+
+    scrollX+= dx;
+    scrollY+= dy;
 
     scrollX = scrollX < 0 ? 0 : scrollX;
     scrollY = scrollY < 0 ? 0 : scrollY;
@@ -170,6 +186,9 @@ void tileEngineUpdate( Micropolis& sim ) {
     int x = 0;
     int y = 0;
     int tileId = 0;
+
+    if ( ! tileEngineReady )
+        return;
 
     for ( y = 0; y < 11; y++ ) {
         for ( x = 0; x < 16; x++ ) {
