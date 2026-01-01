@@ -1,0 +1,6 @@
+[submodule "micropolis"]
+	path = micropolis
+	url = https://github.com/SimHacker/micropolis
+[submodule "mgba"]
+	path = mgba
+	url = https://github.com/mgba-emu/mgba
