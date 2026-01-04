@@ -137,6 +137,11 @@ void tileEngineInit( void ) {
 	BGCTRL[ 0 ] = BG_16_COLOR | BG_SIZE_0 | BG_MAP_BASE( 31 ) | BG_TILE_BASE( 0 ) | BG_PRIORITY( 3 );
 
 	dmaCopy( __tiles_pal_bin, BG_PALETTE, __tiles_pal_bin_len );
+
+    // Make a copy of the palette and invert it (used for highlighting tiles)
+    for ( int i = 0; i < __tiles_pal_bin_len / 2; i++ )
+        BG_PALETTE[ 16 + i ] = ~BG_PALETTE[ i ];
+
     tileEngineReady = 1;
 }
 
@@ -199,3 +204,10 @@ void tileEngineUpdate( Micropolis& sim ) {
     }
 }
 
+void tileEngineGetViewport( int& left, int& right, int& top, int& bottom ) {
+    left = scrollX;
+    right = scrollX + SCREEN_WIDTH;
+
+    top = scrollY;
+    bottom = scrollY + SCREEN_HEIGHT;
+}

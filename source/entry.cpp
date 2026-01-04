@@ -1,5 +1,6 @@
 #include <gba_console.h>
 #include <gba_video.h>
+#include <gba_sprites.h>
 #include <gba_interrupt.h>
 #include <gba_systemcalls.h>
 #include <gba_timers.h>
@@ -12,9 +13,10 @@
 
 #include <fat.h>
 
-#include "micropolis.h"
+#include "w_micropolis.h"
 #include "mgba.h"
 
+#include "sprite_engine.h"
 #include "tile_engine.h"
 #include "input.h"
 #include "timer.h"
@@ -27,7 +29,7 @@ int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
 void irqHBlank( void );
 
-EWRAM_DATA Micropolis sim;
+IWRAM_DATA Micropolis* sim = nullptr;
 
 static volatile uint32_t hblankCount = 0;
 
@@ -42,6 +44,8 @@ static uint32_t tfastest = 0;
 static uint32_t tLast = 0;
 
 static uint32_t seed = 0;
+
+static volatile int gameReady = 0;
 
 int gettimeofday( struct timeval* tv, void* tzp ) {
 	uint32_t timeNow = timerMillis( );
@@ -59,21 +63,24 @@ void irqVBlank( void ) {
 
 	inputUpdateVBlank( );
 
-	a = timerMillis( );
-		tileEngineVBlank( );
-		tileEngineUpdate( sim );
-		processTileQueue( );
-	b = timerMillis( );
+	if ( gameReady ) {
+		a = timerMillis( );
+			spriteEngineUpdate( *sim );
+			tileEngineVBlank( );
+			tileEngineUpdate( *sim );
+			processTileQueue( );
+		b = timerMillis( );
 
-	t = b - a;
+		t = b - a;
 
-	if ( t > tslowest )
-		tslowest = t;
-	
-	if ( t < tfastest )
-		t = tfastest;
+		if ( t > tslowest )
+			tslowest = t;
+		
+		if ( t < tfastest )
+			t = tfastest;
 
-	tLast = t;
+		tLast = t;
+	}
 
 	frameCount++;
 }
@@ -120,44 +127,59 @@ int main( void ) {
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
 
-	REG_DISPCNT = 0;
-
-	fatROMInit( );
-
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlank );
 	irqEnable( IRQ_VBLANK );
 
+	REG_DISPCNT = 0;
+
+	fatROMInit( );
+
 	timerInit( );
 
 	textAndDebugInit( );
+	spriteEngineInit( );
 	seed = generateEntropy( );
+
+	sim = new Micropolis( );
+	assert( sim != nullptr );
 
 	tileEngineInit( );
 
+	// oamShadow[ 0 ].Character = 0;
+	// oamShadow[ 0 ].Size = Sprite_64x64;
+	// oamShadow[ 0 ].ColorMode = OBJ_16_COLOR;
+	// oamShadow[ 0 ].Shape = SQUARE;
+	// oamShadow[ 0 ].X = -16;
+	// oamShadow[ 0 ].Y = -16;
+
 	//sim.generateSomeCity( 3247283 );
-	sim.resourceDir = "rom:/";
-	sim.loadScenario( SC_TOKYO );
-	sim.setSpeed( 1 );
-	sim.setPasses( 1 );
-	sim.simTick( );
-	sim.simUpdate( );
+	sim->resourceDir = "rom:/";
+	sim->loadScenario( SC_TOKYO );
+	sim->setSpeed( 3 );
+	sim->setPasses( 1 );
+	sim->simTick( );
+	sim->simUpdate( );
+
+	gameReady = 1;
 
 	while (1) {
 		VBlankIntrWait( );
 		tickNow = timerMillis( );
 
 		if ( tickNow >= nextSimTick ) {
-			sim.simTick( );
-			sim.simUpdate( );
+			sim->simTick( );
+			sim->simUpdate( );
 
 			nextSimTick = tickNow + 100;
 		}
 
 		if ( tickNow >= nextAnimationTime ) {
 			nextAnimationTime = tickNow + 200;
-			sim.animateTiles( );
+			sim->animateTiles( );
 		}
+
+		// textPrintfCenter( 0, "Month: %d, Year: %d      ", sim->cityMonth, sim->cityYear );
 
 		textPrintfCenter( 0, "FS: %lu, SL: %lu, LST: %lu       ", tfastest, tslowest, tLast );
 	}

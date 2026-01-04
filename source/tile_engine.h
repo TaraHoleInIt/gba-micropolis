@@ -11,8 +11,8 @@
 #define TilesHigh ( SCREEN_HEIGHT / 8 )
 
 void tileEngineInit( void );
-void tileEngineTest( void );
 void tileEngineVBlank( void );
 void tileEngineUpdate( Micropolis& sim );
+void tileEngineGetViewport( int& left, int& right, int& top, int& bottom );
 
 #endif
