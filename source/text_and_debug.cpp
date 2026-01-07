@@ -21,8 +21,8 @@ void textAndDebugInit( void ) {
     mgba_console_open( );
     mgbaStdout = devoptab_list[ STD_OUT ];
 
-    textInit( );
-    consoleStdout = devoptab_list[ STD_OUT ];
+    //textInit( );
+    //consoleStdout = devoptab_list[ STD_OUT ];
 }
 
 void mgbaPrintf( const char* format, ... ) {

@@ -25,6 +25,8 @@
 #include "fat_rom.h"
 #include "text_and_debug.h"
 
+#include "TandyWorldRenderer.h"
+
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
 void irqHBlank( void );
@@ -38,6 +40,8 @@ volatile uint32_t frameCount = 0;
 void irqHBlank( void ) {
 	hblankCount++;
 }
+
+static IWorldRenderer* renderer = nullptr;
 
 static uint32_t tslowest = 0;
 static uint32_t tfastest = 0;
@@ -60,15 +64,33 @@ void irqVBlank( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
 	uint32_t t = 0;
+	int held = 0;
+	int dx = 0;
+	int dy = 0;
 
 	inputUpdateVBlank( );
 
 	if ( gameReady ) {
+		held = inputHeld( );
+
+		dx = ( held & KEY_LEFT ) ? -1 : 0;
+		dx = ( held & KEY_RIGHT ) ? 1 : dx;
+
+		dy = ( held & KEY_UP ) ? -1 : 0;
+		dy = ( held & KEY_DOWN ) ? 1 : dy;
+
+		dx = ( held & KEY_R ) ? ( dx * 2 ) : dx;
+		dy = ( held & KEY_R ) ? ( dy * 2 ) : dy;
+
+		renderer->scroll( dx, dy );
+
 		a = timerMillis( );
-			spriteEngineUpdate( *sim );
-			tileEngineVBlank( );
-			tileEngineUpdate( *sim );
-			processTileQueue( );
+			renderer->update( );
+
+			//spriteEngineUpdate( *sim );
+			//tileEngineVBlank( );
+			//tileEngineUpdate( *sim );
+			//processTileQueue( );
 		b = timerMillis( );
 
 		t = b - a;
@@ -138,22 +160,23 @@ int main( void ) {
 	timerInit( );
 
 	textAndDebugInit( );
-	spriteEngineInit( );
-	seed = generateEntropy( );
+
+	//spriteEngineInit( );
+	//seed = generateEntropy( );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
-	tileEngineInit( );
+	renderer = new TandyWorldRenderer( );
+	assert( renderer != nullptr );
 
-	// oamShadow[ 0 ].Character = 0;
-	// oamShadow[ 0 ].Size = Sprite_64x64;
-	// oamShadow[ 0 ].ColorMode = OBJ_16_COLOR;
-	// oamShadow[ 0 ].Shape = SQUARE;
-	// oamShadow[ 0 ].X = -16;
-	// oamShadow[ 0 ].Y = -16;
+	renderer->init( sim );
+
+	//tileEngineInit( );
 
 	//sim.generateSomeCity( 3247283 );
+
+#if 1
 	sim->resourceDir = "rom:/";
 	sim->loadScenario( SC_TOKYO );
 	sim->setSpeed( 3 );
@@ -163,10 +186,10 @@ int main( void ) {
 
 	gameReady = 1;
 
-	while (1) {
+	while ( true ) {
 		VBlankIntrWait( );
 		tickNow = timerMillis( );
-
+	
 		if ( tickNow >= nextSimTick ) {
 			sim->simTick( );
 			sim->simUpdate( );
@@ -178,11 +201,6 @@ int main( void ) {
 			nextAnimationTime = tickNow + 200;
 			sim->animateTiles( );
 		}
-
-		// textPrintfCenter( 0, "Month: %d, Year: %d      ", sim->cityMonth, sim->cityYear );
-
-		textPrintfCenter( 0, "FS: %lu, SL: %lu, LST: %lu       ", tfastest, tslowest, tLast );
 	}
+#endif
 }
-
-

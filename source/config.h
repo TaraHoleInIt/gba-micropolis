@@ -1,6 +1,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#define ConfigDISPCNTDefault OBJ_ENABLE | OBJ_1D_MAP
+
 #define ConfigConsoleMapBase 30
 #define ConfigConsoleCharBase 2
 #define ConfigConsoleBG 1

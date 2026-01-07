@@ -51,7 +51,7 @@ public:
         *tableEntry = this;
 
         //dmaCopy( &__tiles_bin[ micropolisTileNo * TileSize * 4 ], tileVRAM, TileSize * 4 );
-        addTileUpdateToQueue( &__tiles_bin[ micropolisTileNo * TileSize * 4 ], tileVRAM );
+        //addTileUpdateToQueue( &__tiles_bin[ micropolisTileNo * TileSize * 4 ], tileVRAM );
     }
 
     IWRAM_CODE void disassociate( void ) {
