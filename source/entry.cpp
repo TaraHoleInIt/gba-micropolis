@@ -16,8 +16,6 @@
 #include "w_micropolis.h"
 #include "mgba.h"
 
-#include "sprite_engine.h"
-#include "tile_engine.h"
 #include "input.h"
 #include "timer.h"
 #include "gfx.h"
@@ -26,22 +24,22 @@
 #include "text_and_debug.h"
 
 #include "TandyWorldRenderer.h"
+#include "MCGAWorldRenderer.h"
 
+static void setRenderer( IWorldRenderer* newRenderer );
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
-void irqHBlank( void );
+void irqVBlankPreGame( void );
+void irqVBlankGame( void );
 
 IWRAM_DATA Micropolis* sim = nullptr;
 
-static volatile uint32_t hblankCount = 0;
-
 volatile uint32_t frameCount = 0;
 
-void irqHBlank( void ) {
-	hblankCount++;
-}
+static MCGAWorldRenderer rendererMCGA;
+static TandyWorldRenderer rendererTandy;
 
-static IWorldRenderer* renderer = nullptr;
+static IWorldRenderer* renderer = &rendererTandy;
 
 static uint32_t tslowest = 0;
 static uint32_t tfastest = 0;
@@ -50,6 +48,26 @@ static uint32_t tLast = 0;
 static uint32_t seed = 0;
 
 static volatile int gameReady = 0;
+
+static void setRenderer( IWorldRenderer* newRenderer ) {
+	assert( newRenderer != nullptr );
+	assert( sim != nullptr );
+
+	// Wait until in vblank
+	while ( REG_VCOUNT >= SCREEN_HEIGHT );
+	while ( REG_VCOUNT < SCREEN_HEIGHT );
+
+	irqDisable( IRQ_VBLANK );
+		if ( renderer != nullptr )
+			renderer->deinit( );
+
+		renderer = newRenderer;
+		
+		REG_DISPCNT |= LCDC_OFF;
+			renderer->init( sim );
+		REG_DISPCNT &= ~LCDC_OFF;
+	irqEnable( IRQ_VBLANK );
+}
 
 int gettimeofday( struct timeval* tv, void* tzp ) {
 	uint32_t timeNow = timerMillis( );
@@ -60,7 +78,12 @@ int gettimeofday( struct timeval* tv, void* tzp ) {
 	return 0;
 }
 
-void irqVBlank( void ) {
+void irqVBlankPreGame( void ) {
+	inputUpdateVBlank( );
+	frameCount++;
+}
+
+void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
 	uint32_t t = 0;
@@ -86,11 +109,6 @@ void irqVBlank( void ) {
 
 		a = timerMillis( );
 			renderer->update( );
-
-			//spriteEngineUpdate( *sim );
-			//tileEngineVBlank( );
-			//tileEngineUpdate( *sim );
-			//processTileQueue( );
 		b = timerMillis( );
 
 		t = b - a;
@@ -134,8 +152,7 @@ uint32_t generateEntropy( void ) {
 		}
 	} while ( ! ( held & KEY_START) );
 
-	// Clear the screen
-	textPrintf( "\x1b[2J" );
+	textClearScreen( );
 
 	return result;
 }
@@ -150,7 +167,7 @@ int main( void ) {
 	uint32_t tickNow = 0;
 
 	irqInit();
-	irqSet( IRQ_VBLANK, irqVBlank );
+	irqSet( IRQ_VBLANK, irqVBlankPreGame );
 	irqEnable( IRQ_VBLANK );
 
 	REG_DISPCNT = 0;
@@ -161,28 +178,23 @@ int main( void ) {
 
 	textAndDebugInit( );
 
-	//spriteEngineInit( );
-	//seed = generateEntropy( );
+	seed = generateEntropy( );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
-	renderer = new TandyWorldRenderer( );
-	assert( renderer != nullptr );
+	setRenderer( &rendererMCGA );
 
-	renderer->init( sim );
-
-	//tileEngineInit( );
-
-	//sim.generateSomeCity( 3247283 );
-
-#if 1
 	sim->resourceDir = "rom:/";
 	sim->loadScenario( SC_TOKYO );
 	sim->setSpeed( 3 );
 	sim->setPasses( 1 );
 	sim->simTick( );
 	sim->simUpdate( );
+
+	irqDisable( IRQ_VBLANK );
+		irqSet( IRQ_VBLANK, irqVBlankGame );
+	irqEnable( IRQ_VBLANK );
 
 	gameReady = 1;
 
@@ -202,5 +214,4 @@ int main( void ) {
 			sim->animateTiles( );
 		}
 	}
-#endif
 }

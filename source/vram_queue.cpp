@@ -5,7 +5,6 @@
 #include <queue>
 
 #include "micropolis.h"
-#include "tile_engine.h"
 #include "vram_queue.h"
 
 IWRAM_DATA static volatile VRAMUpdateQueueItem queue[ 256 ];

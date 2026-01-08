@@ -9,7 +9,6 @@
 #include "vram_queue.h"
 #include "timer.h"
 #include "input.h"
-#include "config.h"
 
 #include "text_and_debug.h"
 
@@ -34,7 +33,7 @@ void TandyWorldRenderer::init( Micropolis* _sim ) {
 
     memset( ( void* ) mapShadow, 0, sizeof( mapShadow ) );
 
-    REG_DISPCNT = ConfigDISPCNTDefault | BG0_ON;
+    REG_DISPCNT |= BG0_ON;
     REG_BG0CNT = BG_SIZE_0 | BG_16_COLOR | CHAR_BASE( 0 ) | MAP_BASE( 30 );
 
     REG_BG0HOFS = 0;
@@ -54,7 +53,6 @@ void TandyWorldRenderer::update( void ) {
     volatile uint16_t* row = nullptr;
     int x = 0;
     int y = 0;
-    int i = 0;
     int sx = 0;
     int sy = 0;
 
