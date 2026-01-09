@@ -37,9 +37,9 @@ IWRAM_DATA Micropolis* sim = nullptr;
 volatile uint32_t frameCount = 0;
 
 static MCGAWorldRenderer rendererMCGA;
-static TandyWorldRenderer rendererTandy;
+//static TandyWorldRenderer rendererTandy;
 
-static IWorldRenderer* renderer = &rendererTandy;
+static IWorldRenderer* renderer = nullptr;
 
 static uint32_t tslowest = 0;
 static uint32_t tfastest = 0;
@@ -83,6 +83,8 @@ void irqVBlankPreGame( void ) {
 	frameCount++;
 }
 
+Sprite oamShadow[ 128 ];
+
 void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
@@ -90,6 +92,9 @@ void irqVBlankGame( void ) {
 	int held = 0;
 	int dx = 0;
 	int dy = 0;
+	int s = 0;
+
+	dmaCopy( oamShadow, OAM, sizeof( oamShadow ) );
 
 	inputUpdateVBlank( );
 
@@ -109,6 +114,12 @@ void irqVBlankGame( void ) {
 
 		a = timerMillis( );
 			renderer->update( );
+
+			memset( oamShadow, 0, sizeof( oamShadow ) );
+
+			for ( Sprite i : renderer->getSprites( ) ) {
+				oamShadow[ s++ ] = i;
+			}
 		b = timerMillis( );
 
 		t = b - a;
@@ -165,6 +176,9 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
+	struct timeval tv;
+
+	memset( ( void* ) oamShadow, 0, sizeof( oamShadow ) );
 
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlankPreGame );
@@ -180,14 +194,18 @@ int main( void ) {
 
 	seed = generateEntropy( );
 
+	gettimeofday( &tv, nullptr );
+
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
 	setRenderer( &rendererMCGA );
 
 	sim->resourceDir = "rom:/";
+
+	//sim->generateSomeCity( 0xAABBCCDD );
 	sim->loadScenario( SC_TOKYO );
-	sim->setSpeed( 3 );
+	sim->setSpeed( 1 );
 	sim->setPasses( 1 );
 	sim->simTick( );
 	sim->simUpdate( );
