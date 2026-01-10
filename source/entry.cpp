@@ -102,6 +102,14 @@ void irqVBlankGame( void ) {
 	if ( gameReady ) {
 		held = inputHeld( );
 
+		if ( inputIsHeld( KEY_SELECT ) && inputIsDown( KEY_START ) ) {
+			// Switch renderer
+			if ( renderer == &rendererMCGA )
+				setRenderer( &rendererTandy );
+			else
+				setRenderer( &rendererMCGA );
+		}
+
 		dx = ( held & KEY_LEFT ) ? -1 : 0;
 		dx = ( held & KEY_RIGHT ) ? 1 : dx;
 
