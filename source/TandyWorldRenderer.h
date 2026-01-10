@@ -2,6 +2,7 @@
 #define _TANDYWORLDRENDERER_H_
 
 #include "IWorldRenderer.h"
+#include "game_sprite.h"
 
 class TandyWorldRenderer : public IWorldRenderer {
 private:
@@ -13,6 +14,14 @@ private:
 
     volatile int scrollXTile;
     volatile int scrollYTile;
+
+    GameSprite trainSprite;
+    GameSprite heliSprite;
+    GameSprite planeSprite;
+    GameSprite boatSprite;
+    GameSprite tornadoSprite;
+    GameSprite monsterSprite;
+    GameSprite explosionSprite;
 
 public:
     void init( Micropolis* _sim );

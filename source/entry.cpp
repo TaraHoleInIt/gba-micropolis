@@ -37,7 +37,7 @@ IWRAM_DATA Micropolis* sim = nullptr;
 volatile uint32_t frameCount = 0;
 
 static MCGAWorldRenderer rendererMCGA;
-//static TandyWorldRenderer rendererTandy;
+static TandyWorldRenderer rendererTandy;
 
 static IWorldRenderer* renderer = nullptr;
 
@@ -65,6 +65,7 @@ static void setRenderer( IWorldRenderer* newRenderer ) {
 		
 		REG_DISPCNT |= LCDC_OFF;
 			renderer->init( sim );
+			textAndDebugInit( );
 		REG_DISPCNT &= ~LCDC_OFF;
 	irqEnable( IRQ_VBLANK );
 }
@@ -199,7 +200,7 @@ int main( void ) {
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
-	setRenderer( &rendererMCGA );
+	setRenderer( &rendererTandy );
 
 	sim->resourceDir = "rom:/";
 
