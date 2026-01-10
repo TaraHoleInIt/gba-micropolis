@@ -1,4 +1,5 @@
 #include <gba_video.h>
+#include <gba_sprites.h>
 #include <gba_dma.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,12 +16,15 @@
 #include "TandyWorldRenderer.h"
 #include "tandy_palette_bin.h"
 #include "tandy_tiles_bin.h"
+#include "tandy_map_bin.h"
 
 static const int tilesWide = SCREEN_WIDTH / 8;
 static const int tilesTall = SCREEN_HEIGHT / 8;
 
 static const int maxScrollX = ( WORLD_W * 8 ) - SCREEN_WIDTH;
 static const int maxScrollY = ( WORLD_H * 8 ) - SCREEN_HEIGHT;
+
+static const uint16_t* tileMap = ( const uint16_t* ) tandy_map_bin;
 
 IWRAM_DATA volatile uint16_t TandyWorldRenderer::mapShadow[ 32 * 32 ];
 
@@ -34,7 +38,7 @@ void TandyWorldRenderer::init( Micropolis* _sim ) {
     memset( ( void* ) mapShadow, 0, sizeof( mapShadow ) );
 
     REG_DISPCNT |= BG0_ON;
-    REG_BG0CNT = BG_SIZE_0 | BG_16_COLOR | CHAR_BASE( 0 ) | MAP_BASE( 30 );
+    REG_BG0CNT = BG_SIZE_0 | BG_16_COLOR | CHAR_BASE( 0 ) | MAP_BASE( 29 ) | BG_PRIORITY( 2 );
 
     REG_BG0HOFS = 0;
     REG_BG0VOFS = 0;
@@ -63,10 +67,10 @@ void TandyWorldRenderer::update( void ) {
         row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
 
         for ( x = 0; x < 32; x++ )
-            *row++ = sim->map[ x + sx ][ y + sy ] & 0x03FF;
+            *row++ = tileMap[ sim->map[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
-    dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 30 ), sizeof( mapShadow ) );
+    dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );
 
     REG_BG0HOFS = scrollX & 0x07;
     REG_BG0VOFS = scrollY & 0x07;
@@ -87,4 +91,12 @@ void TandyWorldRenderer::scroll( int dx, int dy ) {
 
     scrollXTile = scrollX / 8;
     scrollYTile = scrollY / 8;
+}
+
+std::vector< Sprite > TandyWorldRenderer::getSprites( void ) {
+    std::vector< Sprite > sprites;
+
+    sprites.clear( );
+
+    return sprites;
 }
