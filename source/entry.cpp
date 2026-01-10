@@ -16,8 +16,6 @@
 #include "w_micropolis.h"
 #include "mgba.h"
 
-#include "sprite_engine.h"
-#include "tile_engine.h"
 #include "input.h"
 #include "timer.h"
 #include "gfx.h"
@@ -25,19 +23,23 @@
 #include "fat_rom.h"
 #include "text_and_debug.h"
 
+#include "TandyWorldRenderer.h"
+#include "MCGAWorldRenderer.h"
+
+static void setRenderer( IWorldRenderer* newRenderer );
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
-void irqHBlank( void );
+void irqVBlankPreGame( void );
+void irqVBlankGame( void );
 
 IWRAM_DATA Micropolis* sim = nullptr;
 
-static volatile uint32_t hblankCount = 0;
-
 volatile uint32_t frameCount = 0;
 
-void irqHBlank( void ) {
-	hblankCount++;
-}
+static MCGAWorldRenderer rendererMCGA;
+static TandyWorldRenderer rendererTandy;
+
+static IWorldRenderer* renderer = nullptr;
 
 static uint32_t tslowest = 0;
 static uint32_t tfastest = 0;
@@ -46,6 +48,27 @@ static uint32_t tLast = 0;
 static uint32_t seed = 0;
 
 static volatile int gameReady = 0;
+
+static void setRenderer( IWorldRenderer* newRenderer ) {
+	assert( newRenderer != nullptr );
+	assert( sim != nullptr );
+
+	// Wait until in vblank
+	while ( REG_VCOUNT >= SCREEN_HEIGHT );
+	while ( REG_VCOUNT < SCREEN_HEIGHT );
+
+	irqDisable( IRQ_VBLANK );
+		if ( renderer != nullptr )
+			renderer->deinit( );
+
+		renderer = newRenderer;
+		
+		REG_DISPCNT |= LCDC_OFF;
+			renderer->init( sim );
+			textAndDebugInit( );
+		REG_DISPCNT &= ~LCDC_OFF;
+	irqEnable( IRQ_VBLANK );
+}
 
 int gettimeofday( struct timeval* tv, void* tzp ) {
 	uint32_t timeNow = timerMillis( );
@@ -56,19 +79,56 @@ int gettimeofday( struct timeval* tv, void* tzp ) {
 	return 0;
 }
 
-void irqVBlank( void ) {
+void irqVBlankPreGame( void ) {
+	inputUpdateVBlank( );
+	frameCount++;
+}
+
+Sprite oamShadow[ 128 ];
+
+void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
 	uint32_t t = 0;
+	int held = 0;
+	int dx = 0;
+	int dy = 0;
+	int s = 0;
+
+	dmaCopy( oamShadow, OAM, sizeof( oamShadow ) );
 
 	inputUpdateVBlank( );
 
 	if ( gameReady ) {
+		held = inputHeld( );
+
+		if ( inputIsHeld( KEY_SELECT ) && inputIsDown( KEY_START ) ) {
+			// Switch renderer
+			if ( renderer == &rendererMCGA )
+				setRenderer( &rendererTandy );
+			else
+				setRenderer( &rendererMCGA );
+		}
+
+		dx = ( held & KEY_LEFT ) ? -1 : 0;
+		dx = ( held & KEY_RIGHT ) ? 1 : dx;
+
+		dy = ( held & KEY_UP ) ? -1 : 0;
+		dy = ( held & KEY_DOWN ) ? 1 : dy;
+
+		dx = ( held & KEY_R ) ? ( dx * 2 ) : dx;
+		dy = ( held & KEY_R ) ? ( dy * 2 ) : dy;
+
+		renderer->scroll( dx, dy );
+
 		a = timerMillis( );
-			spriteEngineUpdate( *sim );
-			tileEngineVBlank( );
-			tileEngineUpdate( *sim );
-			processTileQueue( );
+			renderer->update( );
+
+			memset( oamShadow, 0, sizeof( oamShadow ) );
+
+			for ( Sprite i : renderer->getSprites( ) ) {
+				oamShadow[ s++ ] = i;
+			}
 		b = timerMillis( );
 
 		t = b - a;
@@ -112,8 +172,7 @@ uint32_t generateEntropy( void ) {
 		}
 	} while ( ! ( held & KEY_START) );
 
-	// Clear the screen
-	textPrintf( "\x1b[2J" );
+	textClearScreen( );
 
 	return result;
 }
@@ -126,9 +185,12 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
+	struct timeval tv;
+
+	memset( ( void* ) oamShadow, 0, sizeof( oamShadow ) );
 
 	irqInit();
-	irqSet( IRQ_VBLANK, irqVBlank );
+	irqSet( IRQ_VBLANK, irqVBlankPreGame );
 	irqEnable( IRQ_VBLANK );
 
 	REG_DISPCNT = 0;
@@ -138,35 +200,35 @@ int main( void ) {
 	timerInit( );
 
 	textAndDebugInit( );
-	spriteEngineInit( );
+
 	seed = generateEntropy( );
+
+	gettimeofday( &tv, nullptr );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
-	tileEngineInit( );
+	setRenderer( &rendererTandy );
 
-	// oamShadow[ 0 ].Character = 0;
-	// oamShadow[ 0 ].Size = Sprite_64x64;
-	// oamShadow[ 0 ].ColorMode = OBJ_16_COLOR;
-	// oamShadow[ 0 ].Shape = SQUARE;
-	// oamShadow[ 0 ].X = -16;
-	// oamShadow[ 0 ].Y = -16;
-
-	//sim.generateSomeCity( 3247283 );
 	sim->resourceDir = "rom:/";
+
+	//sim->generateSomeCity( 0xAABBCCDD );
 	sim->loadScenario( SC_TOKYO );
-	sim->setSpeed( 3 );
+	sim->setSpeed( 1 );
 	sim->setPasses( 1 );
 	sim->simTick( );
 	sim->simUpdate( );
 
+	irqDisable( IRQ_VBLANK );
+		irqSet( IRQ_VBLANK, irqVBlankGame );
+	irqEnable( IRQ_VBLANK );
+
 	gameReady = 1;
 
-	while (1) {
+	while ( true ) {
 		VBlankIntrWait( );
 		tickNow = timerMillis( );
-
+	
 		if ( tickNow >= nextSimTick ) {
 			sim->simTick( );
 			sim->simUpdate( );
@@ -178,11 +240,5 @@ int main( void ) {
 			nextAnimationTime = tickNow + 200;
 			sim->animateTiles( );
 		}
-
-		// textPrintfCenter( 0, "Month: %d, Year: %d      ", sim->cityMonth, sim->cityYear );
-
-		textPrintfCenter( 0, "FS: %lu, SL: %lu, LST: %lu       ", tfastest, tslowest, tLast );
 	}
 }
-
-
