@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stack>
+#include <assert.h>
 
 #include <mgba.h>
 
@@ -19,22 +21,28 @@
 #define FontEndChar '~'
 #define FontBGChar ( FontEndChar + 1 )
 
-#define ConsoleWidth ( SCREEN_WIDTH / 8 )
-#define ConsoleHeight ( SCREEN_HEIGHT / 8 )
-
 #define VRAMEnd ( VRAM + 65536 )
 #define MapSize ( 32 * 32 * 2 )
 
+typedef struct {
+    int fg;
+    int bg;
+} ColorPair;
+
 static void textPlaceCharAt( int x, int y, int c );
 static void textInit( void );
+static void textSaveColors( void );
+static void textRestoreColors( void );
 
 static const devoptab_t* mgbaStdout = nullptr;
 
 static volatile uint16_t* bg1Map = ( volatile uint16_t* ) MAP_BASE_ADR( 30 );
 static volatile uint16_t* bg2Map = ( volatile uint16_t* ) MAP_BASE_ADR( 31 );
 
-static int fgColor = 7;
-static int bgColor = 0;
+static std::stack< ColorPair > colorStack;
+
+int textFGColor = 7;
+int textBGColor = 0;
 
 static int consoleX = 0;
 static int consoleY = 0;
@@ -108,6 +116,9 @@ void textPrintfCenter( int y, const char* format, ... ) {
 static void textInit( void ) {
     int i = 0;
 
+    while ( ! colorStack.empty( ) )
+        colorStack.pop( );
+
     dmaCopy( font_img_bin, ( void* ) ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size, font_img_bin_size );
 
     REG_DISPCNT |= BG1_ENABLE | BG2_ENABLE;
@@ -127,18 +138,39 @@ static void textInit( void ) {
         BG_PALETTE[ ( i * 16 ) + 15 ] = textPalette[ i ];
 }
 
+static void textSaveColors( void ) {
+    ColorPair save = {
+        textFGColor,
+        textBGColor
+    };
+
+    colorStack.push( save );
+}
+
+static void textRestoreColors( void ) {
+    ColorPair save;
+
+    assert( colorStack.empty( ) == false );
+
+    save = colorStack.top( );
+    colorStack.pop( );
+
+    textFGColor = save.fg;
+    textBGColor = save.bg;
+}
+
 static void textPlaceCharAt( int x, int y, int c ) {
     int mapOffset = x + ( y * 32 );
 
     c+= FontStartTile - FontStartChar;
 
-    if ( fgColor == Color_Transparent )
+    if ( textFGColor == Color_Transparent )
         c = FontStartTile;
 
-    bg1Map[ mapOffset ] = c | TilePalette( fgColor );
+    bg1Map[ mapOffset ] = c | TilePalette( textFGColor );
 
-    if ( bgColor != Color_Transparent )
-        bg2Map[ mapOffset ] = ( FontStartTile + FontBGChar - FontStartChar ) | TilePalette( bgColor );
+    if ( textBGColor != Color_Transparent )
+        bg2Map[ mapOffset ] = ( FontStartTile + FontBGChar - FontStartChar ) | TilePalette( textBGColor );
     else
         bg2Map[ mapOffset ] = ( FontStartTile );
 }
@@ -183,30 +215,92 @@ void textSetCursor( int x, int y ) {
 }
 
 void textSetColor( int fg, int bg ) {
-    fgColor = fg;
-    bgColor = bg;
+    textFGColor = fg;
+    textBGColor = bg;
 }
 
-void textPuts( const char* text ) {
-    while ( *text )
-        textPutChar( *text++ );
+void textPuts( const char* text, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+        
+        while ( *text )
+            textPutChar( *text++ );
+    textRestoreColors( );
 }
 
 void textClearScreen( void ) {
-    int savedFg = fgColor;
-    int savedBg = bgColor;
+    textSaveColors( );
+        textFGColor = Color_Transparent;
+        textBGColor = Color_Transparent;
 
-    fgColor = Color_Transparent;
-    bgColor = Color_Transparent;
-
-    for ( int y = 0; y < ConsoleHeight; y++ ) {
-        for ( int x = 0; x < ConsoleWidth; x++ )
-            textPlaceCharAt( x, y, 0 );
-    }
-
-    fgColor = savedFg;
-    bgColor = savedBg;
+        for ( int y = 0; y < ConsoleHeight; y++ ) {
+            for ( int x = 0; x < ConsoleWidth; x++ )
+                textPlaceCharAt( x, y, 0 );
+        }
+    textRestoreColors( );
 
     consoleX = 0;
     consoleY = 0;
+}
+
+void textDrawLineH( int x, int y, int width, int c, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+
+        for ( int i = 0; i < width; i++ )
+            textPlaceCharAt( x + i, y, c );
+    textRestoreColors( );
+}
+
+void textDrawLineV( int x, int y, int height, int c, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+
+        for ( int i = 0; i < height; i++ )
+            textPlaceCharAt( x, y + i, c );
+    textRestoreColors( );
+}
+
+void textFillScreen( int c, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+
+        for ( int y = 0; y < ConsoleHeight; y++ ) {
+            for ( int x = 0; x < ConsoleWidth; x++ )
+                textPlaceCharAt( x, y, c );
+        }
+    textRestoreColors( );
+}
+
+void textFillRect( int x, int y, int width, int height, int c, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+
+        for ( int i = 0; i < height; i++ ) {
+            for ( int a = 0; a < width; a++ )
+                textDrawLineH( x, y + i, width, c, fg, bg );
+        }
+    textRestoreColors( );
+}
+
+void textBox( int x, int y, int width, int height, int fg, int bg ) {
+    textSaveColors( );
+        textSetColor( fg, bg );
+
+        // Draw top
+        textPlaceCharAt( x, y, '+' );
+        textDrawLineH( x + 1, y, width - 1, '-' );
+        textPlaceCharAt( x + width, y, '+' );
+
+        // Draw left
+        textDrawLineV( x, y + 1, height - 1, '|' );
+
+        // Draw right
+        textDrawLineV( x + width, y + 1, height - 1, '|' );
+
+        // Draw bottom
+        textPlaceCharAt( x, y + height, '+' );
+        textDrawLineH( x + 1, y + height, width - 1, '-' );
+        textPlaceCharAt( x + width, y + height, '+' );
+    textRestoreColors( );
 }
