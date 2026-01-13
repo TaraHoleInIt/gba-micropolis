@@ -15,8 +15,6 @@ public:
     virtual void getViewport( int& left, int& right, int& top, int& bottom )    = 0;
 
     virtual void scroll( int dx, int dy )   = 0;
-
-    virtual std::vector< Sprite > getSprites( void ) = 0;
 };
 
 #endif

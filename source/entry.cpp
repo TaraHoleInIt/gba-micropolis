@@ -14,12 +14,9 @@
 #include <fat.h>
 
 #include "w_micropolis.h"
-#include "mgba.h"
 
 #include "input.h"
 #include "timer.h"
-#include "gfx.h"
-#include "vram_queue.h"
 #include "fat_rom.h"
 #include "text_and_debug.h"
 
@@ -84,8 +81,6 @@ void irqVBlankPreGame( void ) {
 	frameCount++;
 }
 
-Sprite oamShadow[ 128 ];
-
 void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
@@ -93,9 +88,6 @@ void irqVBlankGame( void ) {
 	int held = 0;
 	int dx = 0;
 	int dy = 0;
-	int s = 0;
-
-	dmaCopy( oamShadow, OAM, sizeof( oamShadow ) );
 
 	inputUpdateVBlank( );
 
@@ -108,6 +100,11 @@ void irqVBlankGame( void ) {
 				setRenderer( &rendererTandy );
 			else
 				setRenderer( &rendererMCGA );
+		}
+
+		if ( inputIsHeld( KEY_SELECT ) && inputIsDown( KEY_A ) ) {
+			//sim->makeMonsterAt( 5, 5 );
+			sim->makeTornado( );
 		}
 
 		dx = ( held & KEY_LEFT ) ? -1 : 0;
@@ -123,12 +120,7 @@ void irqVBlankGame( void ) {
 
 		a = timerMillis( );
 			renderer->update( );
-
-			memset( oamShadow, 0, sizeof( oamShadow ) );
-
-			for ( Sprite i : renderer->getSprites( ) ) {
-				oamShadow[ s++ ] = i;
-			}
+			spriteUpdate( renderer, sim );
 		b = timerMillis( );
 
 		t = b - a;
@@ -185,9 +177,7 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
-	struct timeval tv;
-
-	memset( ( void* ) oamShadow, 0, sizeof( oamShadow ) );
+	int x = 0;
 
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlankPreGame );
@@ -201,14 +191,14 @@ int main( void ) {
 
 	textAndDebugInit( );
 
-	seed = generateEntropy( );
+	spriteInit( );
 
-	gettimeofday( &tv, nullptr );
+	seed = generateEntropy( );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
-	setRenderer( &rendererTandy );
+	setRenderer( &rendererMCGA );
 
 	sim->resourceDir = "rom:/";
 

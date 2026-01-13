@@ -15,14 +15,6 @@ private:
     volatile int scrollXTile;
     volatile int scrollYTile;
 
-    GameSprite trainSprite;
-    GameSprite heliSprite;
-    GameSprite planeSprite;
-    GameSprite boatSprite;
-    GameSprite tornadoSprite;
-    GameSprite monsterSprite;
-    GameSprite explosionSprite;
-
 public:
     void init( Micropolis* _sim );
     void deinit( void );
@@ -31,8 +23,6 @@ public:
     void getViewport( int& left, int& right, int& top, int& bottom );
 
     void scroll( int dx, int dy );
-
-    std::vector< Sprite > getSprites( void );
 };
 
 #endif
