@@ -82,7 +82,7 @@
  *       doc/AnimationSequences.txt and the doc/genAnimationTable.py
  *       program
  */
-static short animatedTiles[TILE_COUNT] = {
+DATA_FAST static short animatedTiles[TILE_COUNT] = {
     0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,  15,
     16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,
     32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,
@@ -220,6 +220,30 @@ void Micropolis::animateTiles()
             (*tMapPtr) = tilevalue;
         }
         tMapPtr++;
+    }
+}
+
+CODE_FAST void Micropolis::animateTiles( int x0, int y0, int x1, int y1 ) {
+    uint16_t* mapPtr = nullptr;
+    uint16_t tileValue = 0;
+    uint16_t tileFlags = 0;
+    int x = x0;
+    int y = y0;
+
+    for ( ; y0 <= y1; y0++ ) {
+        for ( int x = x0; x <= x1; x++ ) {
+            tileValue = map[ x ][ y0 ];
+
+            if ( tileValue & ANIMBIT ) {
+                tileFlags = tileValue & ALLBITS;
+                
+                tileValue &= LOMASK;
+                tileValue = animatedTiles[ tileValue ];
+                tileValue |= tileFlags;
+
+                map[ x ][ y0 ] = tileValue;
+            }
+        }
     }
 }
 

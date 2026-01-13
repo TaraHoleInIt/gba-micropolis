@@ -78,6 +78,21 @@
 #include <cstdarg>
 #include <sys/stat.h>
 
+#ifdef GBA
+#include <gba_base.h>
+
+#define CODE_FAST IWRAM_CODE
+#define DATA_FAST IWRAM_DATA
+#endif
+
+#ifndef CODE_FAST
+#define CODE_FAST
+#endif
+
+#ifndef DATA_FAST
+#define DATA_FAST
+#endif
+
 #ifdef _WIN32
 
 #include <winsock2.h>
@@ -1498,6 +1513,7 @@ public:
 
 
     void animateTiles();
+    void animateTiles( int x0, int y0, int x1, int y1 );
 
     static int getNextAnimatedTile(int index);
 
