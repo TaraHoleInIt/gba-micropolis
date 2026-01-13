@@ -177,6 +177,10 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
+	int left = 0;
+	int right = 0;
+	int top = 0;
+	int bottom = 0;
 	int x = 0;
 
 	irqInit();
@@ -228,7 +232,15 @@ int main( void ) {
 
 		if ( tickNow >= nextAnimationTime ) {
 			nextAnimationTime = tickNow + 200;
-			sim->animateTiles( );
+
+			renderer->getViewport( left, right, top, bottom );
+
+			left>>= 3;
+			right>>= 3;
+			top>>= 3;
+			bottom >>= 3;
+
+			sim->animateTiles( left, top, left + 32, right + 32 );
 		}
 	}
 }
