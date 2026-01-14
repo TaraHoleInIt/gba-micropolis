@@ -81,7 +81,7 @@ void irqVBlankPreGame( void ) {
 	frameCount++;
 }
 
-void irqVBlankGame( void ) {
+IWRAM_CODE void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
 	uint32_t t = 0;
@@ -177,6 +177,10 @@ int main( void ) {
 	uint32_t nextAnimationTime = 0;
 	uint32_t nextSimTick = 0;
 	uint32_t tickNow = 0;
+	int left = 0;
+	int right = 0;
+	int top = 0;
+	int bottom = 0;
 	int x = 0;
 
 	irqInit();
@@ -193,7 +197,7 @@ int main( void ) {
 
 	spriteInit( );
 
-	seed = generateEntropy( );
+	//seed = generateEntropy( );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
@@ -221,14 +225,24 @@ int main( void ) {
 	
 		if ( tickNow >= nextSimTick ) {
 			sim->simTick( );
-			sim->simUpdate( );
+
+			// simTick already calls simUpdate
+			//sim->simUpdate( );
 
 			nextSimTick = tickNow + 100;
 		}
 
 		if ( tickNow >= nextAnimationTime ) {
 			nextAnimationTime = tickNow + 200;
-			sim->animateTiles( );
+
+			renderer->getViewport( left, right, top, bottom );
+
+			left>>= 3;
+			right>>= 3;
+			top>>= 3;
+			bottom >>= 3;
+
+			sim->animateTiles( left, top, left + 32, right + 32 );
 		}
 	}
 }

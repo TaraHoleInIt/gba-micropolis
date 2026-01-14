@@ -146,7 +146,7 @@ static constexpr inline Sprite makeSprite16( uint16_t tileId, uint16_t size, uin
     return res;
 }
 
-static Sprite setupSprite( const Sprite base, int x, int y ) {
+IWRAM_CODE static Sprite setupSprite( const Sprite base, int x, int y ) {
     Sprite res = base;
 
     res.X = x;
@@ -155,7 +155,7 @@ static Sprite setupSprite( const Sprite base, int x, int y ) {
     return res;
 }
 
-static std::vector< Sprite > getGameSprites( IWorldRenderer* renderer, Micropolis* sim ) {
+IWRAM_CODE static std::vector< Sprite > getGameSprites( IWorldRenderer* renderer, Micropolis* sim ) {
     std::vector< Sprite > res;
     Sprite newSprite;
     int left = 0;
@@ -212,7 +212,7 @@ static std::vector< Sprite > getGameSprites( IWorldRenderer* renderer, Micropoli
     return res;
 }
 
-static void spriteClearAll( void ) {
+IWRAM_CODE static void spriteClearAll( void ) {
     dmaCopy( oamClearSpritesDisabled, oamShadow, sizeof( oamClearSpritesDisabled ) );
 }
 
@@ -221,7 +221,7 @@ void spriteInit( void ) {
     dmaCopy( oamShadow, OAM, sizeof( oamShadow ) );
 }
 
-void spriteUpdate( IWorldRenderer* renderer, Micropolis* sim ) {
+IWRAM_CODE void spriteUpdate( IWorldRenderer* renderer, Micropolis* sim ) {
     int spriteNo = 0;
 
     assert( renderer != nullptr );

@@ -2,3 +2,5 @@ build
 temp
 *.DS_Store
 .vscode/*
+.github*
+

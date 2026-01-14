@@ -59,7 +59,7 @@ void MCGAWorldRenderer::init( Micropolis* _sim ) {
 void MCGAWorldRenderer::deinit( void ) {
 }
 
-void MCGAWorldRenderer::update( void ) {
+IWRAM_CODE void MCGAWorldRenderer::update( void ) {
     volatile uint16_t* row = nullptr;
     int x = 0;
     int y = 0;
@@ -69,10 +69,10 @@ void MCGAWorldRenderer::update( void ) {
     sx = scrollXTile;
     sy = scrollYTile;
 
-    for ( y = 0; y < 32; y++ ) {
+    for ( y = 0; y < tilesTall + 1; y++ ) {
         row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
 
-        for ( x = 0; x < 32; x++ )
+        for ( x = 0; x < tilesWide + 1; x++ )
             *row++ = tileMap[ sim->map[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
@@ -82,7 +82,7 @@ void MCGAWorldRenderer::update( void ) {
     REG_BG0VOFS = scrollY & 0x07;
 }
 
-void MCGAWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {
+IWRAM_CODE void MCGAWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {
     left = scrollX;
     right = left + SCREEN_WIDTH;
 
@@ -90,7 +90,7 @@ void MCGAWorldRenderer::getViewport( int& left, int& right, int& top, int& botto
     bottom = top + SCREEN_HEIGHT;
 }
 
-void MCGAWorldRenderer::scroll( int dx, int dy ) {
+IWRAM_CODE void MCGAWorldRenderer::scroll( int dx, int dy ) {
     scrollX+= dx;
     scrollY+= dy;
 
