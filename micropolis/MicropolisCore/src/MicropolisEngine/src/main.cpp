@@ -400,7 +400,7 @@ void Micropolis::simHeat()
 }
 
 
-void Micropolis::simLoop(bool doSim)
+CODE_FAST void Micropolis::simLoop(bool doSim)
 {
    if (heatSteps) {
        int j;
@@ -432,7 +432,7 @@ void Micropolis::simLoop(bool doSim)
  * @todo What is the purpose of this function? (also in relation with
  *       Micropolis::simUpdate()).
  */
-void Micropolis::simTick()
+CODE_FAST void Micropolis::simTick()
 {
     if (simSpeed) {
         for (simPass = 0; simPass < simPasses; simPass++) {

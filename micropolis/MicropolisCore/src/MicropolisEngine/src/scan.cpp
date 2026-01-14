@@ -77,7 +77,7 @@
  * Used for smoothing fire station and police station coverage maps.
  * @param map Map to smooth.
  */
-static void smoothStationMap(MapShort8 *map)
+CODE_FAST static void smoothStationMap(MapShort8 *map)
 {
     short x, y, edge;
     MapShort8 tempMap(*map);
@@ -107,7 +107,7 @@ static void smoothStationMap(MapShort8 *map)
  * Make firerate map from firestation map.
  * @todo Comment seems wrong; what's a firerate map?
  */
-void Micropolis::fireAnalysis()
+CODE_FAST void Micropolis::fireAnalysis()
 {
     smoothStationMap(&fireStationMap);
     smoothStationMap(&fireStationMap);
@@ -123,7 +123,7 @@ void Micropolis::fireAnalysis()
 /** @todo The tempMap1 has MAP_BLOCKSIZE > 1, so we may be able to optimize
  *        the first x, y loop.
  */
-void Micropolis::populationDensityScan()
+CODE_FAST void Micropolis::populationDensityScan()
 {
     /*  sets: populationDensityMap, , , comRateMap  */
     tempMap1.clear();
@@ -185,7 +185,7 @@ void Micropolis::populationDensityScan()
  * @param tile Tile of the zone.
  * @return Population of the zone.
  */
-int Micropolis::getPopulationDensity(const Position &pos, MapTile tile)
+CODE_FAST int Micropolis::getPopulationDensity(const Position &pos, MapTile tile)
 {
     int pop;
 
@@ -214,7 +214,7 @@ int Micropolis::getPopulationDensity(const Position &pos, MapTile tile)
 
 
 /* comefrom: simulate SpecialInit */
-void Micropolis::pollutionTerrainLandValueScan()
+CODE_FAST void Micropolis::pollutionTerrainLandValueScan()
 {
     /* Does pollution, terrain, land value */
     Quad ptot, LVtot;
@@ -328,7 +328,7 @@ void Micropolis::pollutionTerrainLandValueScan()
  * @param loc Tile character
  * @return Value of the pollution (0..255, bigger is worse)
  */
-int Micropolis::getPollutionValue(int loc)
+CODE_FAST int Micropolis::getPollutionValue(int loc)
 {
     if (loc < POWERBASE) {
 
@@ -379,7 +379,7 @@ int Micropolis::getPollutionValue(int loc)
  * @return Manhattan distance (\c dx+dy ) between both positions.
  * @note For long distances (> 64), value 64 is returned.
  */
-int Micropolis::getCityCenterDistance(int x, int y)
+CODE_FAST int Micropolis::getCityCenterDistance(int x, int y)
 {
     int xDis, yDis;
 
@@ -400,7 +400,7 @@ int Micropolis::getCityCenterDistance(int x, int y)
 
 
 /** Smooth police station map and compute crime rate */
-void Micropolis::crimeScan()
+CODE_FAST void Micropolis::crimeScan()
 {
     smoothStationMap(&policeStationMap);
     smoothStationMap(&policeStationMap);
@@ -451,7 +451,7 @@ void Micropolis::crimeScan()
 
 
 /* comefrom: pollutionTerrainLandValueScan */
-void Micropolis::smoothTerrain()
+CODE_FAST void Micropolis::smoothTerrain()
 {
     if (donDither & 1) {
         int x, y = 0, dir = 1;
@@ -503,7 +503,7 @@ void Micropolis::smoothTerrain()
  * @param destMap    Destination map.
  * @param ditherFlag Function should apply dithering.
  */
-static void smoothDitherMap(const MapByte2 &srcMap,
+CODE_FAST static void smoothDitherMap(const MapByte2 &srcMap,
                             MapByte2 *destMap,
                             bool ditherFlag)
 {
@@ -555,14 +555,14 @@ static void smoothDitherMap(const MapByte2 &srcMap,
 
 
 /* Smooth Micropolis::tempMap1 to Micropolis::tempMap2 */
-void Micropolis::doSmooth1()
+CODE_FAST void Micropolis::doSmooth1()
 {
     smoothDitherMap(tempMap1, &tempMap2, donDither & 2);
 }
 
 
 /* Smooth Micropolis::tempMap2 to Micropolis::tempMap1 */
-void Micropolis::doSmooth2()
+CODE_FAST void Micropolis::doSmooth2()
 {
     smoothDitherMap(tempMap2, &tempMap1, donDither & 4);
 }
@@ -572,7 +572,7 @@ void Micropolis::doSmooth2()
  * Compute distance to city center for the entire map.
  * @see comRateMap
  */
-void Micropolis::computeComRateMap()
+CODE_FAST void Micropolis::computeComRateMap()
 {
     short x, y, z;
 

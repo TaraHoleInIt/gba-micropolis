@@ -81,7 +81,7 @@ void irqVBlankPreGame( void ) {
 	frameCount++;
 }
 
-void irqVBlankGame( void ) {
+IWRAM_CODE void irqVBlankGame( void ) {
 	uint32_t a = 0;
 	uint32_t b = 0;
 	uint32_t t = 0;
@@ -197,7 +197,7 @@ int main( void ) {
 
 	spriteInit( );
 
-	seed = generateEntropy( );
+	//seed = generateEntropy( );
 
 	sim = new Micropolis( );
 	assert( sim != nullptr );
@@ -225,7 +225,9 @@ int main( void ) {
 	
 		if ( tickNow >= nextSimTick ) {
 			sim->simTick( );
-			sim->simUpdate( );
+
+			// simTick already calls simUpdate
+			//sim->simUpdate( );
 
 			nextSimTick = tickNow + 100;
 		}

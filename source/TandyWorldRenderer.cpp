@@ -59,7 +59,7 @@ void TandyWorldRenderer::init( Micropolis* _sim ) {
 void TandyWorldRenderer::deinit( void ) {
 }
 
-void TandyWorldRenderer::update( void ) {
+IWRAM_CODE void TandyWorldRenderer::update( void ) {
     volatile uint16_t* row = nullptr;
     int x = 0;
     int y = 0;
@@ -69,10 +69,10 @@ void TandyWorldRenderer::update( void ) {
     sx = scrollXTile;
     sy = scrollYTile;
 
-    for ( y = 0; y < 32; y++ ) {
+    for ( y = 0; y < tilesTall + 1; y++ ) {
         row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
 
-        for ( x = 0; x < 32; x++ )
+        for ( x = 0; x < tilesWide + 1; x++ )
             *row++ = tileMap[ sim->map[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
@@ -82,7 +82,7 @@ void TandyWorldRenderer::update( void ) {
     REG_BG0VOFS = scrollY & 0x07;
 }
 
-void TandyWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {
+IWRAM_CODE void TandyWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {
     left = scrollX;
     right = left + SCREEN_WIDTH;
 
@@ -90,7 +90,7 @@ void TandyWorldRenderer::getViewport( int& left, int& right, int& top, int& bott
     bottom = top + SCREEN_HEIGHT;
 }
 
-void TandyWorldRenderer::scroll( int dx, int dy ) {
+IWRAM_CODE void TandyWorldRenderer::scroll( int dx, int dy ) {
     scrollX+= dx;
     scrollY+= dy;
 

@@ -95,7 +95,7 @@ static const int TAX_FREQUENCY = 48;
 
 
 /* comefrom: doEditWindow scoreDoer doMapInFront graphDoer doNilEvent */
-void Micropolis::simFrame()
+CODE_FAST void Micropolis::simFrame()
 {
 
     if (simSpeed == 0) {
@@ -119,7 +119,7 @@ void Micropolis::simFrame()
 
 
 /* comefrom: simFrame */
-void Micropolis::simulate()
+CODE_FAST void Micropolis::simulate()
 {
     static const short speedPowerScan[3] =
         { 2,  4,  5 };
@@ -926,7 +926,7 @@ void Micropolis::updateFundEffects()
 
 
 /* comefrom: simulate doSimInit */
-void Micropolis::mapScan(int x1, int x2)
+CODE_FAST void Micropolis::mapScan(int x1, int x2)
 {
     short x, y;
 

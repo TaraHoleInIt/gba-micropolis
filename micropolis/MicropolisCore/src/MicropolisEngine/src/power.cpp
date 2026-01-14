@@ -91,7 +91,7 @@ static const Quad NUCLEAR_POWER_STRENGTH = 2000L;
  * @todo Re-use something like Micropolis::getFromMap(), and fold this function
  *       into its caller.
  */
-bool Micropolis::testForConductive(const Position& pos, Direction2 testDir)
+IWRAM_CODE bool Micropolis::testForConductive(const Position& pos, Direction2 testDir)
 {
     Position movedPos(pos);
 
@@ -112,7 +112,7 @@ bool Micropolis::testForConductive(const Position& pos, Direction2 testDir)
  * array.
  * Also warns the user about using too much power ('buy another power plant').
  */
-void Micropolis::doPowerScan()
+CODE_FAST void Micropolis::doPowerScan()
 {
     Direction2 anyDir,dir;
     int conNum;
@@ -160,7 +160,7 @@ void Micropolis::doPowerScan()
  * Push position \a pos onto the power stack if there is room.
  * @param pos Position to push.
  */
-void Micropolis::pushPowerStack(const Position &pos)
+IWRAM_CODE void Micropolis::pushPowerStack(const Position &pos)
 {
     if (powerStackPointer < (POWER_STACK_SIZE - 2)) {
         powerStackPointer++;
@@ -174,7 +174,7 @@ void Micropolis::pushPowerStack(const Position &pos)
  * @return Pulled position.
  * @pre Stack must be non-empty (powerStackPointer > 0).
  */
-Position Micropolis::pullPowerStack()
+CODE_FAST Position Micropolis::pullPowerStack()
 {
     assert(powerStackPointer > 0);
     powerStackPointer--;
