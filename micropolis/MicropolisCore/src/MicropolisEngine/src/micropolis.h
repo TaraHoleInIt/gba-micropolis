@@ -1771,12 +1771,15 @@ public:
 
 
     bool loadFileDir(const char *filename, const char *dir);
+    bool loadFileMem( const unsigned char* data, size_t size );
 
     bool loadFile(const char *filename);
+    bool loadFile( const unsigned char* data, size_t size );
 
     bool saveFile(const char *filename);
 
     void loadScenario(Scenario s);
+    void loadScenario( Scenario s, const unsigned char* data, size_t size );
 
     void didLoadScenario();
 

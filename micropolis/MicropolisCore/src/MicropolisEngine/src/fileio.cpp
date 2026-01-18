@@ -150,6 +150,27 @@ static void half_swap_longs(long *buf, int len)
 #endif
 
 /**
+ * Load an array of short values from memory to memory.
+ * 
+ * Convert to the correct processor architecture, if necessary
+ * @param dst Buffer to put the loaded short values in.
+ * @param len Number of short values to load
+ * @param src Source buffer
+ * @return True; loads from memory always succeed
+ */
+static bool load_short_mem( short* dst, const short* src, int len ) {
+#ifdef IS_INTEL
+    while ( len-- )
+        *dst++ = __builtin_bswap16( *src++ );
+#else
+    while ( len-- )
+        *dst++ = *src++;
+#endif
+
+    return true;
+}
+
+/**
  * Load an array of short values from file to memory.
  *
  * Convert to the correct processor architecture, if necessary.
@@ -192,6 +213,31 @@ static bool save_short(short *buf, int len, FILE *f)
     SWAP_SHORTS(buf, len);        /* back to intel */
 
     return true;
+}
+
+/**
+ * Loads a city file from memory
+ * @param data City data
+ * @param size Size of city data
+ * @return True if data points to a valid pointer and size is 27120 bytes
+ */
+bool Micropolis::loadFileMem( const unsigned char* data, size_t size ) {
+    const short* ptr = ( const short* ) data;
+    
+    if ( data != nullptr && size == 27120 ) {
+        load_short_mem( resHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( comHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( indHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( crimeHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( pollutionHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( moneyHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( miscHist, ptr, MISC_HISTORY_LENGTH / sizeof( short ) ); ptr+= MISC_HISTORY_LENGTH / sizeof( short );
+        load_short_mem( ( ( short* ) &map[ 0 ][ 0 ] ), ptr, WORLD_W * WORLD_H );
+
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -244,6 +290,90 @@ bool Micropolis::loadFileDir(const char *filename, const char *dir)
     fclose(f);
 
     return result;
+}
+
+/**
+ * Load a file from memory, and initialize the game variables.
+ * @param data Pointer to data in memory
+ * @param size Size of data
+ * @return Load was succesfull.
+ */
+bool Micropolis::loadFile( const unsigned char* data, size_t size ) {
+    long n = 0;
+
+    if ( loadFileMem( data, size ) == false )
+        return false;
+
+    /* total funds is a long.....    miscHist is array of shorts */
+    /* total funds is being put in the 50th & 51th word of miscHist */
+    /* find the address, cast the ptr to a longPtr, take contents */
+
+    n = *(Quad *)(miscHist + 50);
+    HALF_SWAP_LONGS(&n, 1);
+    setFunds(n);
+
+    n = *(Quad *)(miscHist + 8);
+    HALF_SWAP_LONGS(&n, 1);
+    cityTime = n;
+
+    setAutoBulldoze(miscHist[52] != 0);   // flag for autoBulldoze
+    setAutoBudget(miscHist[53] != 0);     // flag for autoBudget
+    setAutoGoto(miscHist[54] != 0);       // flag for auto-goto
+    setEnableSound(miscHist[55] != 0);    // flag for the sound on/off
+    setCityTax(miscHist[56]);
+    setSpeed(miscHist[57]);
+    changeCensus();
+    mustUpdateOptions = true;
+
+    /* yayaya */
+
+    n = *(Quad *)(miscHist + 58);
+    HALF_SWAP_LONGS(&n, 1);
+    policePercent = ((float)n) / ((float)65536);
+
+    n = *(Quad *)(miscHist + 60);
+    HALF_SWAP_LONGS(&n, 1);
+    firePercent = (float)n / (float)65536.0;
+
+    n = *(Quad *)(miscHist + 62);
+    HALF_SWAP_LONGS(&n, 1);
+    roadPercent = (float)n / (float)65536.0;
+
+    policePercent =
+        (float)(*(Quad*)(miscHist + 58)) /
+        (float)65536.0;   /* and 59 */
+    firePercent =
+        (float)(*(Quad*)(miscHist + 60)) /
+        (float)65536.0;   /* and 61 */
+    roadPercent =
+        (float)(*(Quad*)(miscHist + 62)) /
+        (float)65536.0;   /* and 63 */
+
+    cityTime = max((Quad)0, cityTime);
+
+    // If the tax is nonsensical, set it to a reasonable value.
+    if (cityTax > 20 || cityTax < 0) {
+        setCityTax(7);
+    }
+
+    // If the speed is nonsensical, set it to a reasonable value.
+    if (simSpeed < 0 || simSpeed > 3) {
+        setSpeed(3);
+    }
+
+    setSpeed(simSpeed);
+    setPasses(1);
+    initFundingLevel();
+
+    // Set the scenario id to 0.
+    initWillStuff();
+    scenario = SC_NONE;
+    initSimLoad = 1;
+    doInitialEval = false;
+    doSimInit();
+    invalidateMaps();
+
+    return true;
 }
 
 /**
@@ -395,6 +525,87 @@ bool Micropolis::saveFile(const char *filename)
     return result;
 }
 
+void Micropolis::loadScenario( Scenario s, const unsigned char* data, size_t size ) {
+    const char *name = NULL;
+    const char *fname = NULL;
+
+    cityFileName = "";
+
+    setGameLevel(LEVEL_EASY);
+
+    if (s < SC_DULLSVILLE || s > SC_RIO) {
+        s = SC_DULLSVILLE;
+    }
+
+    switch (s) {
+        case SC_DULLSVILLE:
+            name = "Dullsville";
+            scenario = SC_DULLSVILLE;
+            cityTime = ((1900 - 1900) * 48) + 2;
+            setFunds(5000);
+            break;
+        case SC_SAN_FRANCISCO:
+            name = "San Francisco";
+            scenario = SC_SAN_FRANCISCO;
+            cityTime = ((1906 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_HAMBURG:
+            name = "Hamburg";
+            scenario = SC_HAMBURG;
+            cityTime = ((1944 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_BERN:
+            name = "Bern";
+            scenario = SC_BERN;
+            cityTime = ((1965 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_TOKYO:
+            name = "Tokyo";
+            scenario = SC_TOKYO;
+            cityTime = ((1957 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_DETROIT:
+            name = "Detroit";
+            scenario = SC_DETROIT;
+            cityTime = ((1972 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_BOSTON:
+            name = "Boston";
+            scenario = SC_BOSTON;
+            cityTime = ((2010 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        case SC_RIO:
+            name = "Rio de Janeiro";
+            scenario = SC_RIO;
+            cityTime = ((2047 - 1900) * 48) + 2;
+            setFunds(20000);
+            break;
+        default:
+            NOT_REACHED();
+            break;
+    }
+
+    setCleanCityName(name);
+    setSpeed(3);
+    setCityTax(7);
+
+    loadFileMem( data, size );
+
+    initWillStuff();
+    initFundingLevel();
+    updateFunds();
+    invalidateMaps();
+    initSimLoad = 1;
+    doInitialEval = false;
+    doSimInit();
+    didLoadScenario();
+}
 
 /**
  * Load a scenario.
