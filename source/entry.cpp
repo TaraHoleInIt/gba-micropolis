@@ -19,15 +19,19 @@
 #include "timer.h"
 #include "fat_rom.h"
 #include "text_and_debug.h"
+#include "save.h"
 
 #include "TandyWorldRenderer.h"
 #include "MCGAWorldRenderer.h"
+#include "cursor.h"
+
 
 static void setRenderer( IWorldRenderer* newRenderer );
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
 void irqVBlankPreGame( void );
 void irqVBlankGame( void );
+void processEvents( uint32_t tickNow );
 
 IWRAM_DATA Micropolis* sim = nullptr;
 
@@ -36,17 +40,18 @@ volatile uint32_t frameCount = 0;
 static MCGAWorldRenderer rendererMCGA;
 static TandyWorldRenderer rendererTandy;
 
-static IWorldRenderer* renderer = nullptr;
-
-static uint32_t tslowest = 0;
-static uint32_t tfastest = 0;
-static uint32_t tLast = 0;
+IWorldRenderer* renderer = nullptr;
 
 static uint32_t seed = 0;
 
 static volatile int gameReady = 0;
 
 static void setRenderer( IWorldRenderer* newRenderer ) {
+	int left = 0;
+	int top = 0;
+	int right = 0;
+	int bottom = 0;
+
 	assert( newRenderer != nullptr );
 	assert( sim != nullptr );
 
@@ -55,13 +60,17 @@ static void setRenderer( IWorldRenderer* newRenderer ) {
 	while ( REG_VCOUNT < SCREEN_HEIGHT );
 
 	irqDisable( IRQ_VBLANK );
-		if ( renderer != nullptr )
+		if ( renderer != nullptr ) {
+			// Save scrolling parameters
+			renderer->getViewport( left, right, top, bottom );
 			renderer->deinit( );
+		}
 
 		renderer = newRenderer;
 		
 		REG_DISPCNT |= LCDC_OFF;
 			renderer->init( sim );
+			renderer->scrollTo( left, top );
 			textAndDebugInit( );
 		REG_DISPCNT &= ~LCDC_OFF;
 	irqEnable( IRQ_VBLANK );
@@ -77,61 +86,14 @@ int gettimeofday( struct timeval* tv, void* tzp ) {
 }
 
 void irqVBlankPreGame( void ) {
-	inputUpdateVBlank( );
+	//inputUpdateVBlank( );
 	frameCount++;
 }
 
 IWRAM_CODE void irqVBlankGame( void ) {
-	uint32_t a = 0;
-	uint32_t b = 0;
-	uint32_t t = 0;
-	int held = 0;
-	int dx = 0;
-	int dy = 0;
-
-	inputUpdateVBlank( );
-
 	if ( gameReady ) {
-		held = inputHeld( );
-
-		if ( inputIsHeld( KEY_SELECT ) && inputIsDown( KEY_START ) ) {
-			// Switch renderer
-			if ( renderer == &rendererMCGA )
-				setRenderer( &rendererTandy );
-			else
-				setRenderer( &rendererMCGA );
-		}
-
-		if ( inputIsHeld( KEY_SELECT ) && inputIsDown( KEY_A ) ) {
-			//sim->makeMonsterAt( 5, 5 );
-			sim->makeTornado( );
-		}
-
-		dx = ( held & KEY_LEFT ) ? -1 : 0;
-		dx = ( held & KEY_RIGHT ) ? 1 : dx;
-
-		dy = ( held & KEY_UP ) ? -1 : 0;
-		dy = ( held & KEY_DOWN ) ? 1 : dy;
-
-		dx = ( held & KEY_R ) ? ( dx * 2 ) : dx;
-		dy = ( held & KEY_R ) ? ( dy * 2 ) : dy;
-
-		renderer->scroll( dx, dy );
-
-		a = timerMillis( );
-			renderer->update( );
-			spriteUpdate( renderer, sim );
-		b = timerMillis( );
-
-		t = b - a;
-
-		if ( t > tslowest )
-			tslowest = t;
-		
-		if ( t < tfastest )
-			t = tfastest;
-
-		tLast = t;
+		renderer->update( );
+		spriteUpdate( renderer, sim );
 	}
 
 	frameCount++;
@@ -150,9 +112,10 @@ uint32_t generateEntropy( void ) {
 
 	do {
 		VBlankIntrWait( );
+		scanKeys( );
 
 		tickNow = timerMillis( );
-		held = inputHeld( );
+		held = keysHeld( );
 
 		if ( held != lastHeld ) {
 			result |= tickNow;
@@ -181,7 +144,6 @@ int main( void ) {
 	int right = 0;
 	int top = 0;
 	int bottom = 0;
-	int x = 0;
 
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlankPreGame );
@@ -189,11 +151,12 @@ int main( void ) {
 
 	REG_DISPCNT = 0;
 
-	fatROMInit( );
+	textAndDebugInit( );
+
+	assert( fatROMInit( ) == true );
+	//assert( saveInit( ) == true );
 
 	timerInit( );
-
-	textAndDebugInit( );
 
 	spriteInit( );
 
@@ -202,6 +165,7 @@ int main( void ) {
 	sim = new Micropolis( );
 	assert( sim != nullptr );
 
+	cursor.init( sim );
 	setRenderer( &rendererMCGA );
 
 	sim->resourceDir = "rom:/";
@@ -220,14 +184,12 @@ int main( void ) {
 	gameReady = 1;
 
 	while ( true ) {
-		VBlankIntrWait( );
 		tickNow = timerMillis( );
+
+		processEvents( tickNow );
 	
 		if ( tickNow >= nextSimTick ) {
 			sim->simTick( );
-
-			// simTick already calls simUpdate
-			//sim->simUpdate( );
 
 			nextSimTick = tickNow + 100;
 		}
@@ -242,7 +204,71 @@ int main( void ) {
 			top>>= 3;
 			bottom >>= 3;
 
-			sim->animateTiles( left, top, left + 32, right + 32 );
+			sim->animateTiles( left, top, left + ( SCREEN_WIDTH / 8 ), top + ( SCREEN_HEIGHT / 8 ) );
 		}
+
+		VBlankIntrWait( );
+	}
+}
+
+void processEvents( uint32_t tickNow ) {
+	static uint32_t nextScrollTime = 0;
+	static uint32_t nextPlaceTime = 0;
+	int dx = 0;
+	int dy = 0;
+    int down = 0;
+    int held = 0;
+    int up = 0;
+	int cursorX = 0;
+	int cursorY = 0;
+	int scrollX = 0;
+	int scrollY = 0;
+	
+	scanKeys( );
+
+	down = keysDown( );
+	held = keysHeld( );
+	up = keysUp( );
+
+	if ( ( held & KEY_SELECT ) && ( down & KEY_START ) ) {
+		// Switch renderer
+		if ( renderer == &rendererMCGA )
+			setRenderer( &rendererTandy );
+		else
+			setRenderer( &rendererMCGA );
+	}
+
+	if ( tickNow >= nextScrollTime ) {
+		dx = ( held & KEY_LEFT ) ? -1 : 0;
+		dx = ( held & KEY_RIGHT ) ? 1 : dx;
+
+		dy = ( held & KEY_UP ) ? -1 : 0;
+		dy = ( held & KEY_DOWN ) ? 1 : dy;
+
+		dx = ( held & KEY_R ) ? ( dx * 2 ) : dx;
+		dy = ( held & KEY_R ) ? ( dy * 2 ) : dy;
+
+		cursor.moveBy( dx, dy );
+
+		cursorX = ( cursor.getX( ) * 8 ) + 4;
+		cursorY = ( cursor.getY( ) * 8 ) + 4;
+
+		scrollX = cursorX - ( SCREEN_WIDTH / 2 );
+		scrollY = cursorY - ( SCREEN_HEIGHT / 2 );
+
+		renderer->scrollTo( scrollX, scrollY );
+
+		nextScrollTime = tickNow + 100;
+	}
+
+	if ( down & KEY_START )
+		cursor.nextTool( );
+
+	if ( tickNow >= nextPlaceTime ) {
+		if ( held & KEY_A ) {
+			cursor.doTool( );
+		}	
+
+		nextPlaceTime = tickNow + 100;
 	}
 }

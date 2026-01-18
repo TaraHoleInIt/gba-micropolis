@@ -2708,7 +2708,7 @@ public:
 
 public:
 
-    ToolResult doTool(EditingTool tool, short tileX, short tileY);
+    ToolResult doTool(EditingTool tool, short tileX, short tileY, bool applyEffects);
 
     void toolDown(EditingTool tool, short tileX, short tileY);
 
@@ -2716,6 +2716,8 @@ public:
                                     short toX, short toY);
 
     void didTool(const char *name, short x, short y);
+
+    short getToolSize( EditingTool tool );
 
 private:
 

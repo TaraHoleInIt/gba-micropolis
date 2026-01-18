@@ -19,9 +19,6 @@
 #define FontEndChar '~'
 #define FontBGChar ( FontEndChar + 1 )
 
-#define ConsoleWidth ( SCREEN_WIDTH / 8 )
-#define ConsoleHeight ( SCREEN_HEIGHT / 8 )
-
 #define VRAMEnd ( VRAM + 65536 )
 #define MapSize ( 32 * 32 * 2 )
 
@@ -99,7 +96,7 @@ void textPrintfCenter( int y, const char* format, ... ) {
         len = vsnprintf( buf, sizeof( buf ), format, argp );
     va_end( argp );
 
-    consoleX = ( ( ConsoleWidth / 2 ) - ( len / 2 ) ) - 1;
+    consoleX = ( ( TextConsoleWidth / 2 ) - ( len / 2 ) ) - 1;
     consoleY = y;
 
     textPuts( buf );
@@ -163,12 +160,12 @@ void textPutChar( int c ) {
         }
     };
 
-    if ( consoleX >= ConsoleWidth ) {
+    if ( consoleX >= TextConsoleWidth ) {
         consoleX = 0;
         consoleY++;
     }
 
-    consoleY = ( consoleY >= ConsoleHeight ) ? ConsoleHeight - 1 : consoleY;
+    consoleY = ( consoleY >= TextConsoleHeight ) ? TextConsoleHeight - 1 : consoleY;
 }
 
 void textSetCursor( int x, int y ) {
@@ -178,8 +175,8 @@ void textSetCursor( int x, int y ) {
     consoleX = ( consoleX < 0 ) ? 0 : consoleX;
     consoleY = ( consoleY < 0 ) ? 0 : consoleY;
 
-    consoleX = ( consoleX >= ConsoleWidth ) ? ConsoleWidth - 1 : consoleX;
-    consoleY = ( consoleY >= ConsoleHeight ) ? ConsoleHeight - 1 : consoleY;
+    consoleX = ( consoleX >= TextConsoleWidth ) ? TextConsoleWidth - 1 : consoleX;
+    consoleY = ( consoleY >= TextConsoleHeight ) ? TextConsoleHeight - 1 : consoleY;
 }
 
 void textSetColor( int fg, int bg ) {
@@ -199,8 +196,8 @@ void textClearScreen( void ) {
     fgColor = Color_Transparent;
     bgColor = Color_Transparent;
 
-    for ( int y = 0; y < ConsoleHeight; y++ ) {
-        for ( int x = 0; x < ConsoleWidth; x++ )
+    for ( int y = 0; y < TextConsoleHeight; y++ ) {
+        for ( int x = 0; x < TextConsoleWidth; x++ )
             textPlaceCharAt( x, y, 0 );
     }
 

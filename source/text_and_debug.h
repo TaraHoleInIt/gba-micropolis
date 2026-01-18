@@ -1,6 +1,9 @@
 #ifndef _TEXT_AND_DEBUG_H_
 #define _TEXT_AND_DEBUG_H_
 
+#define TextConsoleWidth ( SCREEN_WIDTH / 8 )
+#define TextConsoleHeight ( SCREEN_HEIGHT / 8 )
+
 enum {
     Color_Black = 0,
     Color_Darkblue,

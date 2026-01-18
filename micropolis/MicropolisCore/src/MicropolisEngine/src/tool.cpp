@@ -232,6 +232,13 @@ static const short gToolSize[] = {
 ////////////////////////////////////////////////////////////////////////
 // Utilities
 
+/**
+ * Gets the size of the given tool
+ * @return Size of tool
+ */
+short Micropolis::getToolSize( EditingTool tool ) {
+    return gToolSize[ tool ];
+}
 
 /**
  * Put a park down at the give tile.
@@ -1372,7 +1379,7 @@ ToolResult Micropolis::forestTool(short x, short y, ToolEffects *effects)
  * @param tileY Vertical position in the city map.
  * @return Tool result.
  */
-ToolResult Micropolis::doTool(EditingTool tool, short tileX, short tileY)
+ToolResult Micropolis::doTool(EditingTool tool, short tileX, short tileY, bool applyEffects = true)
 {
     ToolEffects effects(this);
     ToolResult result;
@@ -1475,8 +1482,13 @@ ToolResult Micropolis::doTool(EditingTool tool, short tileX, short tileY)
 
     // Perform the effects of applying the tool if enough funds.
     if (result == TOOLRESULT_OK) {
-        if (!effects.modifyIfEnoughFunding()) {
-            return TOOLRESULT_NO_MONEY;
+        if ( applyEffects ) {
+            if (!effects.modifyIfEnoughFunding()) {
+                return TOOLRESULT_NO_MONEY;
+            }
+        } else {
+            result = ( totalFunds >= effects.getCost( ) ) ? TOOLRESULT_OK : TOOLRESULT_NO_MONEY;
+            effects.clear( );
         }
     }
 

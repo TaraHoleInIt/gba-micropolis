@@ -15,6 +15,7 @@ public:
     virtual void getViewport( int& left, int& right, int& top, int& bottom )    = 0;
 
     virtual void scroll( int dx, int dy )   = 0;
+    virtual void scrollTo( int x, int y )   = 0;
 };
 
 #endif

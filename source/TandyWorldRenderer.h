@@ -23,6 +23,7 @@ public:
     void getViewport( int& left, int& right, int& top, int& bottom );
 
     void scroll( int dx, int dy );
+    void scrollTo( int x, int y );
 };
 
 #endif

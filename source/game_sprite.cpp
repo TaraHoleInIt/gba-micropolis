@@ -9,10 +9,9 @@
 #include "w_micropolis.h"
 #include "game_sprite.h"
 #include "text_and_debug.h"
+#include "cursor.h"
 
-static constexpr inline Sprite makeSprite16( uint16_t tileId, uint16_t size, uint16_t shape, uint16_t palette, uint16_t hFlip, uint16_t vFlip );
 static std::vector< Sprite > getGameSprites( IWorldRenderer* renderer, Micropolis* sim );
-static Sprite setupSprite( const Sprite base, int x, int y );
 static void spriteClearAll( void );
 
 static const OBJATTR oamClearSpritesDisabled[ 128 ] = {
@@ -42,7 +41,7 @@ static const Sprite trainSprite[ ] = {
 };
 
 static const Sprite heliSprite[ ] = {
-    makeSprite16( 0, Sprite_32x32, SQUARE, 1, 0, 0 ),   // North
+    makeSprite16( 6, Sprite_32x32, SQUARE, 1, 0, 0 ),   // North
     makeSprite16( 10, Sprite_32x32, SQUARE, 1, 0, 0 ),  // Northeast
     makeSprite16( 14, Sprite_32x32, SQUARE, 1, 0, 0 ),  // East
     makeSprite16( 10, Sprite_32x32, SQUARE, 1, 0, 1 ),  // Southeast
@@ -117,38 +116,19 @@ static const Sprite explosionSprite[ ] = {
 
 static Sprite oamShadow[ 128 ];
 
-static constexpr inline Sprite makeSprite16( uint16_t tileId, uint16_t size, uint16_t shape, uint16_t palette, uint16_t hFlip, uint16_t vFlip ) {
-    Sprite res = {
-        // attr 0
-        .Y = 0,
-        .RotationScaling = 0,
-        .Mode = 0,
-        .Mosaic = 0,
-        .ColorMode = OBJ_16_COLOR,
-        .Shape = shape,
+IWRAM_CODE Sprite setupSprite( const Sprite base, int x, int y ) {
+    Sprite res = base;
 
-        // attr 1
-        .X = 0,
-        .NotUsed = 0,
-        .HFlip = hFlip,
-        .VFlip = vFlip,
-        .Size = size,
-
-        // attr 2
-        .Character = tileId,
-        .Priority = 0,
-        .Palette = palette,
-
-        // dummy
-        .dummy = 0
-    };
+    res.X = x;
+    res.Y = y;
 
     return res;
 }
 
-IWRAM_CODE static Sprite setupSprite( const Sprite base, int x, int y ) {
+IWRAM_CODE Sprite setupSprite( const Sprite base, int x, int y, int palette ) {
     Sprite res = base;
 
+    res.Palette = palette;
     res.X = x;
     res.Y = y;
 
@@ -168,7 +148,7 @@ IWRAM_CODE static std::vector< Sprite > getGameSprites( IWorldRenderer* renderer
     int sprY1 = 0;
 
     renderer->getViewport( left, right, top, bottom );
-
+    
     for ( SimSprite* s = sim->spriteList; s != nullptr; s = s->next ) {
         sprX0 = ( ( s->x + s->xOffset ) / 2 ) - left;
         sprY0 = ( ( s->y + s->yOffset ) / 2 ) - top;
@@ -228,6 +208,9 @@ IWRAM_CODE void spriteUpdate( IWorldRenderer* renderer, Micropolis* sim ) {
     assert( sim != nullptr );
 
     spriteClearAll( );
+
+    for ( Sprite spr : cursor.getSprites( ) )
+        oamShadow[ spriteNo++ ] = spr;
 
     for ( Sprite spr : getGameSprites( renderer, sim ) )
         oamShadow[ spriteNo++ ] = spr;

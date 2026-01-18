@@ -103,3 +103,17 @@ IWRAM_CODE void MCGAWorldRenderer::scroll( int dx, int dy ) {
     scrollXTile = scrollX / 8;
     scrollYTile = scrollY / 8;
 }
+
+IWRAM_CODE void MCGAWorldRenderer::scrollTo( int x, int y ) {
+    scrollX = x;
+    scrollY = y;
+
+    scrollX = ( scrollX < 0 ) ? 0 : scrollX;
+    scrollY = ( scrollY < 0 ) ? 0 : scrollY;
+
+    scrollX = ( scrollX >= maxScrollX ) ? maxScrollX - 1 : scrollX;
+    scrollY = ( scrollY >= maxScrollY ) ? maxScrollY - 1 : scrollY;
+
+    scrollXTile = scrollX / 8;
+    scrollYTile = scrollY / 8;
+}
