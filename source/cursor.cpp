@@ -205,14 +205,19 @@ void Cursor::getToolIconPosition( int cursorScreenX, int cursorScreenY, int& xOf
 }
 
 void Cursor::nextTool( void ) {
-    tool = ( EditingTool ) ( ( ( int ) tool ) + 1 );
+    int tid = ( int ) tool;
 
-    if ( tool > TOOL_AIRPORT )
-        tool = TOOL_RESIDENTIAL;
+    tid++;
+    tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
 
-    setTool( tool );
+    setTool( ( EditingTool ) tid );
 }
 
 void Cursor::prevTool( void ) {
+    int tid = ( int ) tool;
 
+    tid--;
+    tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
+
+    setTool( ( EditingTool ) tid );
 }

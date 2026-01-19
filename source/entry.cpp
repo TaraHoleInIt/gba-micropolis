@@ -11,13 +11,10 @@
 
 #include <sys/time.h>
 
-#include <fat.h>
-
 #include "w_micropolis.h"
 
 #include "input.h"
 #include "timer.h"
-#include "fat_rom.h"
 #include "text_and_debug.h"
 #include "save.h"
 
@@ -25,6 +22,7 @@
 #include "MCGAWorldRenderer.h"
 #include "cursor.h"
 
+#include "scenarios.h"
 
 static void setRenderer( IWorldRenderer* newRenderer );
 int gettimeofday( struct timeval* tv, void* tzp );
@@ -39,6 +37,8 @@ volatile uint32_t frameCount = 0;
 
 static MCGAWorldRenderer rendererMCGA;
 static TandyWorldRenderer rendererTandy;
+
+static volatile int needsRedraw = 0;
 
 IWorldRenderer* renderer = nullptr;
 
@@ -92,8 +92,12 @@ void irqVBlankPreGame( void ) {
 
 IWRAM_CODE void irqVBlankGame( void ) {
 	if ( gameReady ) {
-		renderer->update( );
-		spriteUpdate( renderer, sim );
+		if ( needsRedraw ) {
+			renderer->update( );
+			spriteUpdate( renderer, sim );
+
+			needsRedraw = 0;
+		}
 	}
 
 	frameCount++;
@@ -153,7 +157,7 @@ int main( void ) {
 
 	textAndDebugInit( );
 
-	assert( fatROMInit( ) == true );
+	//assert( fatROMInit( ) == true );
 	//assert( saveInit( ) == true );
 
 	timerInit( );
@@ -171,7 +175,9 @@ int main( void ) {
 	sim->resourceDir = "rom:/";
 
 	//sim->generateSomeCity( 0xAABBCCDD );
-	sim->loadScenario( SC_TOKYO );
+	//sim->loadScenario( SC_TOKYO );
+	//sim->loadScenario( SC_DETROIT, detroit_bin, detroit_bin_size );
+	sim->loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
 	sim->setSpeed( 1 );
 	sim->setPasses( 1 );
 	sim->simTick( );
@@ -192,6 +198,7 @@ int main( void ) {
 			sim->simTick( );
 
 			nextSimTick = tickNow + 100;
+			needsRedraw = 1;
 		}
 
 		if ( tickNow >= nextAnimationTime ) {
@@ -205,6 +212,7 @@ int main( void ) {
 			bottom >>= 3;
 
 			sim->animateTiles( left, top, left + ( SCREEN_WIDTH / 8 ), top + ( SCREEN_HEIGHT / 8 ) );
+			needsRedraw = 1;
 		}
 
 		VBlankIntrWait( );
@@ -236,6 +244,8 @@ void processEvents( uint32_t tickNow ) {
 			setRenderer( &rendererTandy );
 		else
 			setRenderer( &rendererMCGA );
+
+		needsRedraw = 1;
 	}
 
 	if ( tickNow >= nextScrollTime ) {
@@ -244,9 +254,6 @@ void processEvents( uint32_t tickNow ) {
 
 		dy = ( held & KEY_UP ) ? -1 : 0;
 		dy = ( held & KEY_DOWN ) ? 1 : dy;
-
-		dx = ( held & KEY_R ) ? ( dx * 2 ) : dx;
-		dy = ( held & KEY_R ) ? ( dy * 2 ) : dy;
 
 		cursor.moveBy( dx, dy );
 
@@ -259,10 +266,14 @@ void processEvents( uint32_t tickNow ) {
 		renderer->scrollTo( scrollX, scrollY );
 
 		nextScrollTime = tickNow + 100;
+		needsRedraw = 1;
 	}
 
-	if ( down & KEY_START )
+	if ( down & KEY_R )
 		cursor.nextTool( );
+
+	if ( down & KEY_L )
+		cursor.prevTool( );
 
 	if ( tickNow >= nextPlaceTime ) {
 		if ( held & KEY_A ) {
