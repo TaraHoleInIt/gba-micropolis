@@ -105,7 +105,7 @@ void textPrintfCenter( int y, const char* format, ... ) {
 static void textInit( void ) {
     int i = 0;
 
-    dmaCopy( font_img_bin, ( void* ) ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size, font_img_bin_size );
+    dmaCopy( font_img_bin, ( void* ) ( char* ) ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size, font_img_bin_size );
 
     REG_DISPCNT |= BG1_ENABLE | BG2_ENABLE;
 
