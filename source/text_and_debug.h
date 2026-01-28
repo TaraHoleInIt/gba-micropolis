@@ -38,4 +38,11 @@ void textPrintfCenter( int y, const char* format, ... );
 
 void textClearScreen( void );
 
+void textSaveColors( void );
+void textRestoreColors( void );
+void textDrawLineH( int x, int y, int width, int ch );
+void textDrawLineV( int x, int y, int height, int ch );
+void textFill( int x, int y, int width, int height, int ch );
+void textBox( int x, int y, int width, int height );
+
 #endif

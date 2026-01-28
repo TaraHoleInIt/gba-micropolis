@@ -9,7 +9,6 @@
 
 #include "vram_queue.h"
 #include "timer.h"
-#include "input.h"
 
 #include "text_and_debug.h"
 
@@ -31,10 +30,7 @@ static const uint16_t* tileMap = ( const uint16_t* ) tandy_map_bin;
 
 IWRAM_DATA volatile uint16_t TandyWorldRenderer::mapShadow[ 32 * 32 ];
 
-void TandyWorldRenderer::init( Micropolis* _sim ) {
-    assert( _sim != nullptr );
-    sim = _sim;
-
+void TandyWorldRenderer::init( void) {
     dmaCopy( tandy_palette_bin, BG_PALETTE, tandy_palette_bin_size );
     dmaCopy( tandy_tiles_bin, CHAR_BASE_ADR( 0 ), tandy_tiles_bin_size );
 
@@ -59,7 +55,7 @@ void TandyWorldRenderer::init( Micropolis* _sim ) {
 void TandyWorldRenderer::deinit( void ) {
 }
 
-IWRAM_CODE void TandyWorldRenderer::update( void ) {
+IWRAM_CODE void TandyWorldRenderer::update( unsigned short* simMap[ WORLD_W ] ) {
     volatile uint16_t* row = nullptr;
     int x = 0;
     int y = 0;
@@ -73,7 +69,7 @@ IWRAM_CODE void TandyWorldRenderer::update( void ) {
         row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
 
         for ( x = 0; x < tilesWide + 1; x++ )
-            *row++ = tileMap[ sim->map[ x + sx ][ y + sy ] & 0x03FF ];
+            *row++ = tileMap[ simMap[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
     dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );

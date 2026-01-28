@@ -172,7 +172,7 @@ void Micropolis::simInit()
  * @todo What is the purpose of this function? (also in relation with
  *       Micropolis::simTick()).
  */
-void Micropolis::simUpdate()
+CODE_FAST void Micropolis::simUpdate()
 {
     //printf("simUpdate\n");
     blinkFlag = ((tickCount() % 60) < 30) ? 1 : -1;

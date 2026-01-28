@@ -1,4 +1,5 @@
 #include <gba.h>
+#include <gba_video.h>
 #include <gba_sprites.h>
 
 #include "game_sprite.h"
@@ -6,6 +7,7 @@
 #include "cursor.h"
 #include "text_and_debug.h"
 #include "IWorldRenderer.h"
+#include "Game.h"
 
 static const Sprite cursor8x8 = makeSprite16( 544, Sprite_8x8, SQUARE, 0, 0, 0 );
 
@@ -52,22 +54,8 @@ static const Sprite* toolIcons[ ] = {
     nullptr,    // Forest has no icon
 };
 
-extern IWorldRenderer* renderer;
-Cursor cursor;
-
 Cursor::Cursor( void ) {
     tool = EditingTool::TOOL_ROAD;
-    sim = nullptr;
-    x = 0;
-    y = 0;
-    placeOk = false;
-    toolSize = 0;
-}
-
-void Cursor::init( Micropolis* _sim ) {
-    assert( _sim != nullptr );
-
-    sim = _sim;
     x = 0;
     y = 0;
     placeOk = false;
@@ -107,10 +95,8 @@ bool Cursor::worldToScreen( int& _x, int& _y ) {
     int right = 0;
     int top = 0;
     int bottom = 0;
-    int xOffset = 0;
-    int yOffset = 0;
 
-    renderer->getViewport( left, right, top, bottom );
+    game.renderer->getViewport( left, right, top, bottom );
 
     _x = ( x * 8 ) - left;
     _y = ( y * 8 ) - top;
@@ -119,7 +105,7 @@ bool Cursor::worldToScreen( int& _x, int& _y ) {
 }
 
 bool Cursor::canPlaceTool( void ) {
-    return sim->doTool( tool, x, y, false ) == TOOLRESULT_OK;
+    return game.sim.doTool( tool, x, y, false ) == TOOLRESULT_OK;
 }
 
 EditingTool Cursor::getTool( void ) {
@@ -128,13 +114,13 @@ EditingTool Cursor::getTool( void ) {
 
 void Cursor::setTool( EditingTool newTool ) {
     tool = newTool;
-    toolSize = sim->getToolSize( tool );
+    toolSize = game.sim.getToolSize( tool );
 
     placeOk = canPlaceTool( );
 }
 
 void Cursor::doTool( void ) {
-    sim->doTool( tool, x, y, true );
+    game.sim.doTool( tool, x, y, true );
 }
 
 void testUISprite( Sprite spr, int x, int y, std::vector< Sprite >& res ) {
@@ -156,6 +142,8 @@ std::vector< Sprite > Cursor::getSprites( void ) {
     int screenY = 0;
     int xOffset = 0;
     int yOffset = 0;
+
+    res.reserve( 128 );
 
     if ( worldToScreen( screenX, screenY ) ) {
         cursorColor = placeOk ? Color_Green : Color_Red;

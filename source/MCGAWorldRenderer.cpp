@@ -8,8 +8,6 @@
 #include "w_micropolis.h"
 
 #include "timer.h"
-#include "input.h"
-
 #include "text_and_debug.h"
 
 #include "MCGAWorldRenderer.h"
@@ -31,10 +29,7 @@ static const uint16_t* tileMap = ( const uint16_t* ) mcga_map_bin;
 
 IWRAM_DATA volatile uint16_t MCGAWorldRenderer::mapShadow[ 32 * 32 ];
 
-void MCGAWorldRenderer::init( Micropolis* _sim ) {
-    assert( _sim != nullptr );
-    sim = _sim;
-
+void MCGAWorldRenderer::init( void ) {
     dmaCopy( mcga_tiles_bin, CHAR_BASE_ADR( 0 ), mcga_tiles_bin_size );
     dmaCopy( mcga_palette_bin, BG_PALETTE, mcga_palette_bin_size );
 
@@ -59,7 +54,7 @@ void MCGAWorldRenderer::init( Micropolis* _sim ) {
 void MCGAWorldRenderer::deinit( void ) {
 }
 
-IWRAM_CODE void MCGAWorldRenderer::update( void ) {
+IWRAM_CODE void MCGAWorldRenderer::update( unsigned short* simMap[ WORLD_W ] ) {
     volatile uint16_t* row = nullptr;
     int x = 0;
     int y = 0;
@@ -73,7 +68,7 @@ IWRAM_CODE void MCGAWorldRenderer::update( void ) {
         row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
 
         for ( x = 0; x < tilesWide + 1; x++ )
-            *row++ = tileMap[ sim->map[ x + sx ][ y + sy ] & 0x03FF ];
+            *row++ = tileMap[ simMap[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
     dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );

@@ -8,9 +8,6 @@
 #include "w_micropolis.h"
 #include "IWorldRenderer.h"
 
-void spriteInit( void );
-void spriteUpdate( IWorldRenderer* renderer, Micropolis* sim );
-
 constexpr Sprite makeSprite16( uint16_t tileId, uint16_t size, uint16_t shape, uint16_t palette, uint16_t hFlip, uint16_t vFlip ) {
     Sprite res = {
         // attr 0
@@ -42,5 +39,14 @@ constexpr Sprite makeSprite16( uint16_t tileId, uint16_t size, uint16_t shape, u
 
 Sprite setupSprite( const Sprite base, int x, int y );
 Sprite setupSprite( const Sprite base, int x, int y, int palette );
+
+extern const OBJATTR oamClearSpritesDisabled[ 128 ];
+extern const Sprite trainSprite[ ];
+extern const Sprite heliSprite[ ];
+extern const Sprite planeSprite[ ];
+extern const Sprite shipSprite[ ];
+extern const Sprite monsterSprite[ ];
+extern const Sprite tornadoSprite[ ];
+extern const Sprite explosionSprite[ ];
 
 #endif

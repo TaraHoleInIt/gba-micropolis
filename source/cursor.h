@@ -10,8 +10,6 @@ private:
     EditingTool tool;
     int toolSize;
 
-    Micropolis* sim;
-
     int x;
     int y;
 

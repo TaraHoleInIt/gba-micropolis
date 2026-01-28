@@ -6,6 +6,9 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <vector>
+#include <tuple>
+
 #include <mgba.h>
 
 #include "text_and_debug.h"
@@ -29,6 +32,8 @@ static const devoptab_t* mgbaStdout = nullptr;
 
 static volatile uint16_t* bg1Map = ( volatile uint16_t* ) MAP_BASE_ADR( 30 );
 static volatile uint16_t* bg2Map = ( volatile uint16_t* ) MAP_BASE_ADR( 31 );
+
+std::vector< std::tuple< int, int > > colorSave;
 
 static int fgColor = 7;
 static int bgColor = 0;
@@ -105,7 +110,7 @@ void textPrintfCenter( int y, const char* format, ... ) {
 static void textInit( void ) {
     int i = 0;
 
-    dmaCopy( font_img_bin, ( void* ) ( char* ) ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size, font_img_bin_size );
+    dmaCopy( font_img_bin, ( void* ) ( ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size ), font_img_bin_size );
 
     REG_DISPCNT |= BG1_ENABLE | BG2_ENABLE;
 
@@ -190,20 +195,69 @@ void textPuts( const char* text ) {
 }
 
 void textClearScreen( void ) {
-    int savedFg = fgColor;
-    int savedBg = bgColor;
+    textSaveColors( );
+        fgColor = Color_Transparent;
+        bgColor = Color_Transparent;
 
-    fgColor = Color_Transparent;
-    bgColor = Color_Transparent;
-
-    for ( int y = 0; y < TextConsoleHeight; y++ ) {
-        for ( int x = 0; x < TextConsoleWidth; x++ )
-            textPlaceCharAt( x, y, 0 );
-    }
-
-    fgColor = savedFg;
-    bgColor = savedBg;
+        for ( int y = 0; y < TextConsoleHeight; y++ ) {
+            for ( int x = 0; x < TextConsoleWidth; x++ )
+                textPlaceCharAt( x, y, 0 );
+        }
+    textRestoreColors( );
 
     consoleX = 0;
     consoleY = 0;
+}
+
+void textSaveColors( void ) {
+    colorSave.push_back( { fgColor, bgColor } );
+}
+
+void textRestoreColors( void ) {
+    std::tuple< int, int > sv;
+
+    if ( colorSave.empty( ) )
+        return;
+
+    sv = colorSave.back( );
+    colorSave.pop_back( );
+
+    fgColor = std::get< 0 >( sv );
+    bgColor = std::get< 1 >( sv );
+}
+
+void textDrawLineH( int x, int y, int width, int ch ) {
+    for ( int i = 0; i < width; i++ )
+        textPlaceCharAt( x + i, y, ch );
+}
+
+void textDrawLineV( int x, int y, int height, int ch ) {
+    for ( int i = 0; i < height; i++ )
+        textPlaceCharAt( x, y + i, ch );
+}
+
+void textFill( int x, int y, int width, int height, int ch ) {
+    for ( int i = 0; i < height; i++ )
+        textDrawLineH( x, y + i, width, ch );
+}
+
+void textBox( int x, int y, int width, int height ) {
+    // Fill with blank space
+    textFill( x, y, width, height, ' ' );
+
+    // Top
+    textPlaceCharAt( x, y, '+' );
+    textDrawLineH( x + 1, y, width - 2, '-' );
+    textPlaceCharAt( x + width - 1, y, '+' );
+
+    // Bottom
+    textPlaceCharAt( x, y + height - 1, '+' );
+    textDrawLineH( x + 1, y + height - 1, width - 2, '-' );
+    textPlaceCharAt( x + width - 1, y + height - 1, '+' );
+
+    // Left
+    textDrawLineV( x, y + 1, height - 2, '|' );
+
+    // Right
+    textDrawLineV( x + width - 1, y + 1, height - 2, '|' );
 }

@@ -16,9 +16,9 @@ private:
     volatile int scrollYTile;
 
 public:
-    void init( Micropolis* _sim );
+    void init( void );
     void deinit( void );
-    void update( void );
+    void update( unsigned short* simMap[ WORLD_W ] );
 
     void getViewport( int& left, int& right, int& top, int& bottom );
 
