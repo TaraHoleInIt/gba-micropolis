@@ -1,15 +1,13 @@
-#include <sys/iosupport.h>
 #include <gba_console.h>
 #include <gba_video.h>
 #include <gba_dma.h>
+#include <gba_compression.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
 #include <vector>
 #include <tuple>
-
-#include <mgba.h>
 
 #include "text_and_debug.h"
 
@@ -27,8 +25,6 @@
 
 static void textPlaceCharAt( int x, int y, int c );
 static void textInit( void );
-
-static const devoptab_t* mgbaStdout = nullptr;
 
 static volatile uint16_t* bg1Map = ( volatile uint16_t* ) MAP_BASE_ADR( 30 );
 static volatile uint16_t* bg2Map = ( volatile uint16_t* ) MAP_BASE_ADR( 31 );
@@ -62,54 +58,13 @@ static const uint16_t textPalette[ 16 ] = {
 };
 
 void textAndDebugInit( void ) {
-    mgba_console_open( );
-    mgbaStdout = devoptab_list[ STD_OUT ];
-
     textInit( );
-}
-
-void mgbaPrintf( const char* format, ... ) {
-    char buf[ 256 ];
-    int len = 0;
-    va_list argp;
-
-    va_start( argp, format );
-        len = vsnprintf( buf, sizeof( buf ), format, argp );
-    va_end( argp );
-
-    if ( mgbaStdout != nullptr )
-        mgbaStdout->write_r( _REENT, nullptr, buf, len + 1 );
-}
-
-void textPrintf( const char* format, ... ) {
-    char buf[ 256 ];
-    va_list argp;
-
-    va_start( argp, format );
-        vsnprintf( buf, sizeof( buf ), format, argp );
-    va_end( argp );
-
-    textPuts( buf );
-}
-
-void textPrintfCenter( int y, const char* format, ... ) {
-    char buf[ 256 ];
-    int len = 0;
-    va_list argp;
-
-    va_start( argp, format );
-        len = vsnprintf( buf, sizeof( buf ), format, argp );
-    va_end( argp );
-
-    consoleX = ( ( TextConsoleWidth / 2 ) - ( len / 2 ) ) - 1;
-    consoleY = y;
-
-    textPuts( buf );
 }
 
 static void textInit( void ) {
     int i = 0;
 
+    //LZ77UnCompVram( font_img_bin, ( void* ) ( ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size ) );
     dmaCopy( font_img_bin, ( void* ) ( ( VRAMEnd - ( MapSize * 3 ) ) - font_img_bin_size ), font_img_bin_size );
 
     REG_DISPCNT |= BG1_ENABLE | BG2_ENABLE;

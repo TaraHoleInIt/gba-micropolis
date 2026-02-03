@@ -33,9 +33,6 @@ void textSetCursor( int x, int y );
 void textSetColor( int fg, int bg );
 void textPuts( const char* text );
 
-void textPrintf( const char* format, ... );
-void textPrintfCenter( int y, const char* format, ... );
-
 void textClearScreen( void );
 
 void textSaveColors( void );

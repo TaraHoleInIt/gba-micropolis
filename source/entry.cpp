@@ -19,8 +19,6 @@
 
 #include "Game.h"
 
-#include "scenarios.h"
-
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
 void irqVBlankPreGame( void );
@@ -30,9 +28,6 @@ void processEvents( uint32_t tickNow );
 IWRAM_DATA Micropolis* sim = nullptr;
 
 volatile uint32_t frameCount = 0;
-
-static MCGAWorldRenderer rendererMCGA;
-static TandyWorldRenderer rendererTandy;
 
 static volatile int needsRedraw = 0;
 
@@ -57,10 +52,11 @@ void irqVBlankPreGame( void ) {
 }
 
 void irqVBlankGame( void ) {
-	game.vblank( );
+	game->vblank( );
 	frameCount++;
 }
 
+#if 0
 uint32_t generateEntropy( void ) {
 	int y = ( ( SCREEN_HEIGHT / 8 ) / 2 ) - 2;
 	uint32_t tickNow = 0;
@@ -93,11 +89,12 @@ uint32_t generateEntropy( void ) {
 
 	return result;
 }
+#endif
 
 #define REG_WAITCNT ( *( volatile u16* ) 0x04000204 )
 
 int main( void ) {
-	REG_WAITCNT = ( 1 << 14 ) | 2;
+	//REG_WAITCNT = ( 1 << 14 ) | 2;
 
 	irqInit();
 	irqSet( IRQ_VBLANK, irqVBlankPreGame );
@@ -106,13 +103,16 @@ int main( void ) {
 	textAndDebugInit( );
 	timerInit( );
 
+	game = new Game( );
+	assert( game != nullptr );
+
 	irqDisable( IRQ_VBLANK );
 		irqSet( IRQ_VBLANK, irqVBlankGame );
 	irqEnable( IRQ_VBLANK );
 
 	while ( true ) {
 		VBlankIntrWait( );
-		game.runFrame( );
+		game->runFrame( );
 		// scanKeys( );
 
 		// down = keysDown( );

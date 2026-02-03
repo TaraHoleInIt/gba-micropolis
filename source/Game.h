@@ -7,7 +7,6 @@
 #include "IWorldRenderer.h"
 #include "w_micropolis.h"
 #include "cursor.h"
-#include "MCGAWorldRenderer.h"
 #include "TandyWorldRenderer.h"
 
 class Game : public Window {
@@ -18,7 +17,6 @@ private:
     IWorldRenderer* renderer;
     Cursor cursor;
 
-    MCGAWorldRenderer rendererMCGA;
     TandyWorldRenderer rendererTandy;
 
     uint32_t nextSimTick;
@@ -59,6 +57,6 @@ public:
     friend class Cursor;
 };
 
-extern Game game;
+extern Game* game;
 
 #endif

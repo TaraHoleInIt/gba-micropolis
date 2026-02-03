@@ -122,8 +122,6 @@ void Micropolis::doZone(const Position &pos)
         doIndustrial(pos, zonePowerFlag);
         return;
     }
-
-    printf("UNEXPOECTED ZONE: %d !!!\n", tile);
 }
 
 /**

@@ -97,12 +97,6 @@ static bool testDirectory(const std::string& dir, const char *envVar)
 
         return true;
     }
-
-    fprintf(stderr, "Can't find the directory \"%s\"!\n", dir.c_str());
-    fprintf(stderr,
-            "The environment variable \"%s\" should name a directory.\n",
-            envVar);
-
     return false;
 }
 
@@ -124,9 +118,6 @@ void Micropolis::environmentInit()
         }
     }
 
-    // Failed on $SIMHOME, ".", or the 'res' directory.
-    fprintf(stderr,
-            "Please check the environment or reinstall Micropolis and try again! Sorry!\n");
     exit(1);
 }
 

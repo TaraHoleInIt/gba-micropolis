@@ -22,10 +22,10 @@ include $(DEVKITARM)/gba_rules
 # the makefile is found
 #
 #---------------------------------------------------------------------------------
-TARGET		:= $(notdir $(CURDIR))
+TARGET		:= $(notdir $(CURDIR))_mb
 BUILD		:= build
-SOURCES		:= source mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
-INCLUDES	:= include mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
+SOURCES		:= source micropolis/MicropolisCore/src/MicropolisEngine/src
+INCLUDES	:= include micropolis/MicropolisCore/src/MicropolisEngine/src
 DATA		:= data
 MUSIC		:=
 
@@ -34,8 +34,10 @@ MUSIC		:=
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2\
+CFLAGS	:=	-Wall -Os\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
+		-ffunction-sections -fdata-sections\
+		-DNDEBUG=1\
 		-DGBA=1\
 		$(ARCH)
 
@@ -43,8 +45,8 @@ CFLAGS	+=	$(INCLUDE)
 
 CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
 
-ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
+ASFLAGS	:=	$(ARCH)
+LDFLAGS	=	$(ARCH) -Wl,-Map,$(notdir $*.map) -Wl,--gc-sections
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

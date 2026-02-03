@@ -6,7 +6,6 @@
 
 class TandyWorldRenderer : public IWorldRenderer {
 private:
-    static volatile uint16_t mapShadow[ 32 * 32 ];
     Micropolis* sim;
 
     volatile int scrollX;

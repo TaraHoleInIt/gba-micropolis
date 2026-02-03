@@ -1,6 +1,7 @@
 #include <gba_video.h>
 #include <gba_sprites.h>
 #include <gba_dma.h>
+#include <gba_compression.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -28,13 +29,15 @@ static const int maxScrollY = ( WORLD_H * 8 ) - SCREEN_HEIGHT;
 
 static const uint16_t* tileMap = ( const uint16_t* ) tandy_map_bin;
 
-IWRAM_DATA volatile uint16_t TandyWorldRenderer::mapShadow[ 32 * 32 ];
-
 void TandyWorldRenderer::init( void) {
-    dmaCopy( tandy_palette_bin, BG_PALETTE, tandy_palette_bin_size );
-    dmaCopy( tandy_tiles_bin, CHAR_BASE_ADR( 0 ), tandy_tiles_bin_size );
+    int color = 0;
+    int r = 0;
+    int g = 0;
+    int b = 0;
 
-    memset( ( void* ) mapShadow, 0, sizeof( mapShadow ) );
+    dmaCopy( tandy_palette_bin, BG_PALETTE, tandy_palette_bin_size );
+    LZ77UnCompVram( tandy_tiles_bin, CHAR_BASE_ADR( 0 ) );
+    //dmaCopy( tandy_tiles_bin, CHAR_BASE_ADR( 0 ), tandy_tiles_bin_size );
 
     REG_DISPCNT |= BG0_ON | OBJ_ENABLE;
     REG_BG0CNT = BG_SIZE_0 | BG_16_COLOR | CHAR_BASE( 0 ) | MAP_BASE( 29 ) | BG_PRIORITY( 2 );
@@ -48,7 +51,8 @@ void TandyWorldRenderer::init( void) {
     scrollXTile = 0;
     scrollYTile = 0;
 
-    dmaCopy( tandysheet_img_bin, SPR_VRAM( 0 ), tandysheet_img_bin_size );
+    //dmaCopy( tandysheet_img_bin, SPR_VRAM( 0 ), tandysheet_img_bin_size );
+    LZ77UnCompVram( tandysheet_img_bin, SPR_VRAM( 0 ) );
     dmaCopy( tandysheet_pal_bin, SPRITE_PALETTE, tandysheet_pal_bin_size );
 }
 
@@ -66,13 +70,11 @@ IWRAM_CODE void TandyWorldRenderer::update( unsigned short* simMap[ WORLD_W ] ) 
     sy = scrollYTile;
 
     for ( y = 0; y < tilesTall + 1; y++ ) {
-        row = ( volatile uint16_t* ) &mapShadow[ y * 32 ];
+        row = ( volatile uint16_t* ) ( ( char* ) MAP_BASE_ADR( 29 ) ) + ( y * 32 ); //&mapShadow[ y * 32 ];
 
         for ( x = 0; x < tilesWide + 1; x++ )
             *row++ = tileMap[ simMap[ x + sx ][ y + sy ] & 0x03FF ];
     }
-
-    dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );
 
     REG_BG0HOFS = scrollX & 0x07;
     REG_BG0VOFS = scrollY & 0x07;

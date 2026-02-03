@@ -81,8 +81,8 @@
 #ifdef GBA
 #include <gba_base.h>
 
-#define CODE_FAST IWRAM_CODE
-#define DATA_FAST IWRAM_DATA
+#define CODE_FAST
+#define DATA_FAST
 #endif
 
 #ifndef CODE_FAST
@@ -932,7 +932,6 @@ static inline T absoluteValue(const T val)
  */
 static inline void not_reached(int line, const char *fname)
 {
-    fprintf(stderr, "Code unexpectedly executed at line %d, at file %s\n", line, fname);
     exit(1);
 }
 

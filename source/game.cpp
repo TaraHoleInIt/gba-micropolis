@@ -5,7 +5,6 @@
 #include <gba_dma.h>
 #include "text_and_debug.h"
 #include "Game.h"
-#include "scenarios.h"
 #include "timer.h"
 
 #include "TextWindow.h"
@@ -21,9 +20,7 @@
 #define Config_ScrollTick_Time 100
 
 IWRAM_DATA Sprite Game::oamShadow[ 128 ];
-EWRAM_DATA Game game;
-
-TextWindow tw( 1, 1, 15, 10, Color_White, Color_Blue, "Test" );
+Game* game;
 
 Game::Game( void ) {
     nextTileAnimateTick = 0;
@@ -33,13 +30,12 @@ Game::Game( void ) {
     gameReady = false;
     needsRedraw = true;
 
-    //sim.generateSomeCity( 0xAABBCCDD );
-    sim.loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
+    sim.generateSomeCity( 0x10203040 );
     sim.setSpeed( 1 );
     sim.setPasses( 1 );
     sim.simTick( );
 
-    setRenderer( &rendererMCGA );
+    setRenderer( &rendererTandy );
     spriteInit( );
 
     gameRunning = true;
@@ -259,13 +255,6 @@ void Game::runFrame( void ) {
     held = keysHeld( );
     up = keysUp( );
 
-    if ( ( held & KEY_SELECT ) && ( down & KEY_START ) ) {
-        if ( renderer == &rendererMCGA )
-            setRenderer( &rendererTandy );
-        else
-            setRenderer( &rendererMCGA );
-    }
-
     if ( ( down & KEY_START ) && ! ( ( held | down ) & KEY_SELECT ) ) {
         if ( wmGetActiveWindow( ) == this ) {
             wmShowWindow(
@@ -278,13 +267,13 @@ void Game::runFrame( void ) {
                     Color_Blue,
                     "Disasters",
                     { 
-                        { "Earthquake", [ ] { game.sim.makeEarthquake( ); } },
-                        { "Fire", [ ] { game.sim.makeFire( ); } },
-                        { "Fire bombs", [ ] { game.sim.makeFireBombs( ); } },
-                        { "Flood", [ ] { game.sim.makeFlood( ); } },
-                        { "Monster", [ ] { game.sim.makeMonster( ); } },
-                        { "Tornado", [ ] { game.sim.makeTornado( ); } },
-                        { "Meltdown", [ ] { game.sim.makeMeltdown( ); } }
+                        { "Earthquake", [ ] { game->sim.makeEarthquake( ); } },
+                        { "Fire", [ ] { game->sim.makeFire( ); } },
+                        { "Fire bombs", [ ] { game->sim.makeFireBombs( ); } },
+                        { "Flood", [ ] { game->sim.makeFlood( ); } },
+                        { "Monster", [ ] { game->sim.makeMonster( ); } },
+                        { "Tornado", [ ] { game->sim.makeTornado( ); } },
+                        { "Meltdown", [ ] { game->sim.makeMeltdown( ); } }
                     }
                 )
             );

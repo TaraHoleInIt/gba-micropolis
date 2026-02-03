@@ -96,7 +96,7 @@ bool Cursor::worldToScreen( int& _x, int& _y ) {
     int top = 0;
     int bottom = 0;
 
-    game.renderer->getViewport( left, right, top, bottom );
+    game->renderer->getViewport( left, right, top, bottom );
 
     _x = ( x * 8 ) - left;
     _y = ( y * 8 ) - top;
@@ -105,7 +105,7 @@ bool Cursor::worldToScreen( int& _x, int& _y ) {
 }
 
 bool Cursor::canPlaceTool( void ) {
-    return game.sim.doTool( tool, x, y, false ) == TOOLRESULT_OK;
+    return game->sim.doTool( tool, x, y, false ) == TOOLRESULT_OK;
 }
 
 EditingTool Cursor::getTool( void ) {
@@ -114,13 +114,13 @@ EditingTool Cursor::getTool( void ) {
 
 void Cursor::setTool( EditingTool newTool ) {
     tool = newTool;
-    toolSize = game.sim.getToolSize( tool );
+    toolSize = game->sim.getToolSize( tool );
 
     placeOk = canPlaceTool( );
 }
 
 void Cursor::doTool( void ) {
-    game.sim.doTool( tool, x, y, true );
+    game->sim.doTool( tool, x, y, true );
 }
 
 void testUISprite( Sprite spr, int x, int y, std::vector< Sprite >& res ) {
