@@ -19,16 +19,33 @@
 #define Config_SimTick_Time 100
 #define Config_AnimationTick_Time 200
 #define Config_ScrollTick_Time 100
+#define Config_StatusBarTick_Time 500
 
 IWRAM_DATA Sprite Game::oamShadow[ 128 ];
 EWRAM_DATA Game game;
 
 TextWindow tw( 1, 1, 15, 10, Color_White, Color_Blue, "Test" );
 
+const char* Game::monthNames[ 12 ] = {
+    "Jan", 
+    "Feb", 
+    "Mar", 
+    "Apr", 
+    "May", 
+    "Jun",
+    "Jul", 
+    "Aug", 
+    "Sep", 
+    "Oct", 
+    "Nov", 
+    "Dec"
+};
+
 Game::Game( void ) {
     nextTileAnimateTick = 0;
     nextSimTick = 0;
     nextScrollTick = 0;
+    nextStatusBarTick = 0;
 
     gameReady = false;
     needsRedraw = true;
@@ -44,6 +61,7 @@ Game::Game( void ) {
 
     gameRunning = true;
     gameReady = true;
+    statusBarShown = false;
 
     windows.push_back( this );
 }
@@ -79,6 +97,13 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
 
             sim.animateTiles( left, top, left + ( SCREEN_WIDTH / 8 ), top + ( SCREEN_HEIGHT / 8 ) );
             needsRedraw = true;
+        }
+
+        if ( tickNow >= nextStatusBarTick ) {
+            nextStatusBarTick = tickNow + Config_StatusBarTick_Time;
+
+            if ( statusBarShown )
+                drawStatusBars( );
         }
     }
 }
@@ -259,6 +284,15 @@ void Game::runFrame( void ) {
     held = keysHeld( );
     up = keysUp( );
 
+    if ( down & KEY_SELECT ) {
+        statusBarShown = ! statusBarShown;
+
+        if ( statusBarShown )
+            drawStatusBars( );
+        else
+            clearStatusBars( );
+    }
+
     if ( ( held & KEY_SELECT ) && ( down & KEY_START ) ) {
         if ( renderer == &rendererMCGA )
             setRenderer( &rendererTandy );
@@ -344,4 +378,43 @@ Window* Game::wmGetActiveWindow( void ) {
     assert( windows.size( ) >= 1UL );
 
     return windows.back( );
+}
+
+void Game::drawStatusBars( void ) {
+    char dateStr[ 32 ];
+    char cashStr[ 32 ];
+    char popStr[ 32 ];
+    int dateLen = 0;
+    int cashLen = 0;
+
+    dateLen = snprintf( dateStr, sizeof( dateStr ), "%s %ld", Game::monthNames[ sim.cityMonth ], sim.cityYear );
+    cashLen = snprintf( cashStr, sizeof( cashStr ), "Cash: $%ld", sim.totalFunds );
+    snprintf( popStr, sizeof( popStr ), "Pop: %ld", sim.cityPop );
+
+    textSaveColors( );
+        textSetColor( Color_White, Color_Blue );
+
+        textDrawLineH( 0, 0, TextConsoleWidth, ' ' );
+        textDrawLineH( 0, TextConsoleHeight - 1, TextConsoleWidth, ' ' );
+
+        textSetCursor( 0, 0 );
+        textPuts( sim.cityName.c_str( ) );
+
+        textSetCursor( TextConsoleWidth - dateLen, 0 );
+        textPuts( dateStr );
+
+        textSetCursor( 0, TextConsoleHeight - 1 );
+        textPuts( popStr );
+
+        textSetCursor( TextConsoleWidth - cashLen, TextConsoleHeight - 1 );
+        textPuts( cashStr );
+    textRestoreColors( );
+}
+
+void Game::clearStatusBars( void ) {
+    textSaveColors( );
+        textSetColor( Color_Transparent, Color_Transparent );
+        textDrawLineH( 0, 0, TextConsoleWidth, ' ' );
+        textDrawLineH( 0, TextConsoleHeight - 1, TextConsoleWidth, ' ' );
+    textRestoreColors( );
 }

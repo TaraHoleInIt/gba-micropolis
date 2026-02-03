@@ -24,10 +24,12 @@ private:
     uint32_t nextSimTick;
     uint32_t nextTileAnimateTick;
     uint32_t nextScrollTick;
+    uint32_t nextStatusBarTick;
 
     bool needsRedraw;
     bool gameReady;
     bool gameRunning;
+    bool statusBarShown;
 
     void setRenderer( IWorldRenderer* newRenderer );
 
@@ -39,6 +41,11 @@ private:
     void spriteUpdate( void );
 
     void handleScrolling( int keysHeld );
+
+    void drawStatusBars( void );
+    void clearStatusBars( void );
+
+    static const char* monthNames[ 12 ];
 
 public:
     Game( void );
