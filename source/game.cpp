@@ -3,6 +3,7 @@
 #include <gba_input.h>
 #include <gba_video.h>
 #include <gba_dma.h>
+#include <string.h>
 #include "text_and_debug.h"
 #include "Game.h"
 #include "scenarios.h"
@@ -20,6 +21,9 @@
 #define Config_AnimationTick_Time 200
 #define Config_ScrollTick_Time 100
 #define Config_StatusBarTick_Time 500
+#define Config_Message_Show_Time 5000
+
+#define Message_Y ( TextConsoleHeight - 3 )
 
 IWRAM_DATA Sprite Game::oamShadow[ 128 ];
 EWRAM_DATA Game game;
@@ -41,11 +45,75 @@ const char* Game::monthNames[ 12 ] = {
     "Dec"
 };
 
+const char* Game::messageTable[ MESSAGE_LAST + 1 ] = {
+    "",
+    "More residential zones needed",
+    "More commercial zones needed",
+    "More industrial zones needed",
+    "More roads required",
+    "Inadequate rail system",
+    "Build a power plant",
+    "Residents demand a stadium",
+    "Industry requires a seaport",
+    "Commerce requires an airport",
+    "Pollution is very high",
+    "Crime is very high",
+    "Frequent traffic jams reported",
+    "Citizens demand a fire dept",
+    "Citizens demand a police dept",
+    "Blackouts reported",
+    "Citizens: taxes are too high",
+    "Roads breaking due to funding",    // TARA: Something more clear?
+    "Fire depts need funding",
+    "Police depts need funding",
+    "Fire reported",
+    "A Monster has been sighted!",
+    "Tornado reported!",
+    "Major earthquake reported!",
+    "A plane has crashed!",
+    "Shipwreck reported!",
+    "A train has crashed!",
+    "A helicopter has crashed!",
+    "Unemployment rate is high",
+    "YOUR CITY HAS GONE BROKE!",
+    "Firebombing reported!",
+    "Need more parks",
+    "Explosion detected!",
+    "Insufficient funds",
+    "Area must be bulldozed first",
+    "Population has reached 2,000",
+    "Population has reached 10,000",
+    "Population has reached 50,000",
+    "Population has reached 100,000",
+    "Population has reached 500,000",
+    "Brownouts; build more power",
+    "Heavy traffic reported",
+    "Flooding reported!",
+    "Nuclear meltdown occurred!",
+    "Citizens are rioting!",
+    "Started a new city",
+    "Restored a saved city",
+    "You won the scenario",
+    "You lose the scenario",
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr
+};
+
 Game::Game( void ) {
     nextTileAnimateTick = 0;
     nextSimTick = 0;
     nextScrollTick = 0;
     nextStatusBarTick = 0;
+    eraseMessageTick = 0xFFFFFFFF;
+
+    memset( gameMessage, 0, sizeof( gameMessage ) );
 
     gameReady = false;
     needsRedraw = true;
@@ -55,6 +123,9 @@ Game::Game( void ) {
     sim.setSpeed( 1 );
     sim.setPasses( 1 );
     sim.simTick( );
+
+    sim.callbackHook = simCallback;
+    sim.callbackData = this;
 
     setRenderer( &rendererMCGA );
     spriteInit( );
@@ -104,6 +175,11 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
 
             if ( statusBarShown )
                 drawStatusBars( );
+        }
+
+        if ( tickNow >= eraseMessageTick && eraseMessageTick != 0xFFFFFFFF ) {
+            eraseMessageTick = 0xFFFFFFFF;
+            clearMessage( );
         }
     }
 }
@@ -416,5 +492,60 @@ void Game::clearStatusBars( void ) {
         textSetColor( Color_Transparent, Color_Transparent );
         textDrawLineH( 0, 0, TextConsoleWidth, ' ' );
         textDrawLineH( 0, TextConsoleHeight - 1, TextConsoleWidth, ' ' );
+    textRestoreColors( );
+}
+
+void Game::simCallback( Micropolis* sim, void* data, const char* name, const char* params, va_list args ) {
+    const char* updateType = nullptr;
+    Game* gamePtr = nullptr;
+    int isImportant = false;
+    int hasPicture = false;
+    int messageNo = 0;
+    int mx = 0;
+    int my = 0;
+
+    if ( strcmp( name, "update" ) == 0 ) {
+        updateType = va_arg( args, const char* );
+
+        if ( updateType != nullptr ) {
+            if ( strcmp( updateType, "message" ) == 0 ) {
+                messageNo = va_arg( args, int );
+                mx = va_arg( args, int );
+                my = va_arg( args, int );
+                hasPicture = va_arg( args, int );
+                isImportant = va_arg( args, int );
+
+                if ( ( gamePtr = ( Game* ) data ) != nullptr )
+                    gamePtr->showMessage( messageNo );
+            }
+        }
+    }
+}
+
+void Game::showMessage( int messageId ) {
+    int len = 0;
+
+    if ( messageId > 0 && messageId <= MESSAGE_LAST ) {
+        if ( messageTable[ messageId ] != nullptr ) {
+            strncpy( gameMessage, messageTable[ messageId ], TextConsoleWidth );
+            len = strlen( gameMessage );
+
+            clearMessage( );
+
+            textSaveColors( );
+                textSetColor( Color_White, Color_Black );
+                textSetCursor( ( TextConsoleWidth - len ) / 2, Message_Y );
+                textPuts( gameMessage );
+            textRestoreColors( );
+
+            eraseMessageTick = timerMillis( ) + Config_Message_Show_Time;
+        }
+    }
+}
+
+void Game::clearMessage( void ) {
+    textSaveColors( );
+        textSetColor( Color_Transparent, Color_Transparent );
+        textDrawLineH( 0, Message_Y, TextConsoleWidth, ' ' );
     textRestoreColors( );
 }

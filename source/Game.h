@@ -9,6 +9,8 @@
 #include "cursor.h"
 #include "MCGAWorldRenderer.h"
 #include "TandyWorldRenderer.h"
+#include "text_and_debug.h"
+#include "text.h"
 
 class Game : public Window {
 private:
@@ -25,6 +27,7 @@ private:
     uint32_t nextTileAnimateTick;
     uint32_t nextScrollTick;
     uint32_t nextStatusBarTick;
+    uint32_t eraseMessageTick;
 
     bool needsRedraw;
     bool gameReady;
@@ -45,7 +48,12 @@ private:
     void drawStatusBars( void );
     void clearStatusBars( void );
 
+    static const char* messageTable[ MESSAGE_LAST + 1 ];
     static const char* monthNames[ 12 ];
+
+    static void simCallback( Micropolis* sim, void* data, const char* name, const char* params, va_list args );
+
+    char gameMessage[ TextConsoleWidth + 1 ];
 
 public:
     Game( void );
@@ -62,6 +70,9 @@ public:
     void wmShowWindow( Window* win );
 
     Window* wmGetActiveWindow( void );
+
+    void showMessage( int messageId );
+    void clearMessage( void );
 
     friend class Cursor;
 };

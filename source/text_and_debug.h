@@ -1,6 +1,8 @@
 #ifndef _TEXT_AND_DEBUG_H_
 #define _TEXT_AND_DEBUG_H_
 
+#include <gba_video.h>
+
 #define TextConsoleWidth ( SCREEN_WIDTH / 8 )
 #define TextConsoleHeight ( SCREEN_HEIGHT / 8 )
 

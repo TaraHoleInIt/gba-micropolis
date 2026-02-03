@@ -70,15 +70,13 @@ void textAndDebugInit( void ) {
 
 void mgbaPrintf( const char* format, ... ) {
     char buf[ 256 ];
-    int len = 0;
     va_list argp;
 
     va_start( argp, format );
-        len = vsnprintf( buf, sizeof( buf ), format, argp );
+        vsnprintf( buf, sizeof( buf ), format, argp );
     va_end( argp );
 
-    if ( mgbaStdout != nullptr )
-        mgbaStdout->write_r( _REENT, nullptr, buf, len + 1 );
+    mgba_printf( MGBA_LOG_ERROR, buf );
 }
 
 void textPrintf( const char* format, ... ) {
