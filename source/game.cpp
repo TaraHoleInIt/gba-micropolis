@@ -120,6 +120,7 @@ Game::Game( void ) {
 
     //sim.generateSomeCity( 0xAABBCCDD );
     sim.loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
+    sim.setAutoGoto( true );
     sim.setSpeed( 1 );
     sim.setPasses( 1 );
     sim.simTick( );
@@ -517,6 +518,10 @@ void Game::simCallback( Micropolis* sim, void* data, const char* name, const cha
 
                 if ( ( gamePtr = ( Game* ) data ) != nullptr )
                     gamePtr->showMessage( messageNo );
+
+                if ( sim->autoGoto ) {
+                    gamePtr->scrollTo( mx, my );
+                }
             }
         }
     }
@@ -548,4 +553,22 @@ void Game::clearMessage( void ) {
         textSetColor( Color_Transparent, Color_Transparent );
         textDrawLineH( 0, Message_Y, TextConsoleWidth, ' ' );
     textRestoreColors( );
+}
+
+void Game::scrollTo( int x, int y ) {
+    int cursorX = 0;
+    int cursorY = 0;
+    int scrollX = 0;
+    int scrollY = 0;
+
+    cursorX = ( x * 8 ) + 4;
+    cursorY = ( y * 8 ) + 4;
+
+    scrollX = cursorX - ( SCREEN_WIDTH / 2 );
+    scrollY = cursorY - ( SCREEN_HEIGHT / 2 );
+
+    cursor.moveTo( x, y );
+    renderer->scrollTo( scrollX, scrollY );
+
+    needsRedraw = true;
 }

@@ -74,6 +74,8 @@ public:
     void showMessage( int messageId );
     void clearMessage( void );
 
+    void scrollTo( int x, int y );
+
     friend class Cursor;
 };
 
