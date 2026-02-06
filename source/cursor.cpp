@@ -250,12 +250,6 @@ void Cursor::nextTool( void ) {
     curToolIndex = clamp( curToolIndex, 0, ( int ) ( sizeof( tools ) / sizeof( tools[ 0 ] ) - 1 ) );
 
     setTool( toolFromIndex( curToolIndex ) );
-    // int tid = ( int ) tool;
-
-    // tid++;
-    // tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
-
-    // setTool( ( EditingTool ) tid );
 }
 
 void Cursor::prevTool( void ) {
@@ -263,13 +257,6 @@ void Cursor::prevTool( void ) {
     curToolIndex = clamp( curToolIndex, 0, ( int ) ( sizeof( tools ) / sizeof( tools[ 0 ] ) - 1 ) );
 
     setTool( toolFromIndex( curToolIndex ) );
-
-    // int tid = ( int ) tool;
-
-    // tid--;
-    // tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
-
-    // setTool( ( EditingTool ) tid );
 }
 
 EditingTool Cursor::toolFromIndex( int tooli ) {

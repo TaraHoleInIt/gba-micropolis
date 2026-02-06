@@ -391,27 +391,6 @@ void Game::runFrame( void ) {
         if ( wmGetActiveWindow( ) == this ) {
             wmShowWindow(
                 makeMainMenu( )
-                //makeFileMenu( )
-                //makeOptionsMenu( 1, 1, 20, 10 )
-                //makeScenarioMenu( 0, 0, TextConsoleWidth, 10 )
-                // makeMenu(
-                //     1,
-                //     1,
-                //     20,
-                //     10,
-                //     Color_White,
-                //     Color_Blue,
-                //     "Disasters",
-                //     { 
-                //         { "Earthquake", [ ] { game.sim.makeEarthquake( ); } },
-                //         { "Fire", [ ] { game.sim.makeFire( ); } },
-                //         { "Fire bombs", [ ] { game.sim.makeFireBombs( ); } },
-                //         { "Flood", [ ] { game.sim.makeFlood( ); } },
-                //         { "Monster", [ ] { game.sim.makeMonster( ); } },
-                //         { "Tornado", [ ] { game.sim.makeTornado( ); } },
-                //         { "Meltdown", [ ] { game.sim.makeMeltdown( ); } }
-                //     }
-                // )
             );
         }
     }
