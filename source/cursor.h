@@ -9,6 +9,7 @@ class Cursor {
 private:
     EditingTool tool;
     int toolSize;
+    int curToolIndex;
 
     int x;
     int y;
@@ -18,6 +19,8 @@ private:
     bool canPlaceTool( void );
 
     void getToolIconPosition( int cursorScreenX, int cursorScreenY, int& xOffset, int& yOffset );
+
+    EditingTool toolFromIndex( int tooli );
 public:
     Cursor( void );
     

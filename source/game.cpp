@@ -128,14 +128,14 @@ Game::Game( void ) {
     sim.callbackHook = simCallback;
     sim.callbackData = this;
 
+    windows.push_back( this );
+
     setRenderer( &rendererMCGA );
     spriteInit( );
 
     gameRunning = true;
     gameReady = true;
     statusBarShown = false;
-
-    windows.push_back( this );
 }
 
 void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
@@ -219,6 +219,16 @@ void Game::setRenderer( IWorldRenderer* newRenderer ) {
 			textAndDebugInit( );
 		REG_DISPCNT &= ~LCDC_OFF;
 	irqEnable( IRQ_VBLANK );
+
+    // Make sure to redraw message, current menu and status bar since this
+    // will erase them
+    if ( statusBarShown )
+        drawStatusBars( );
+    
+    wmGetActiveWindow( )->show( );
+    
+    if ( eraseMessageTick != 0xFFFFFFFF )
+        showMessage( gameMessage );
 }
 
 IWRAM_CODE std::vector< Sprite > Game::getGameSprites( void ) {
@@ -380,24 +390,28 @@ void Game::runFrame( void ) {
     if ( ( down & KEY_START ) && ! ( ( held | down ) & KEY_SELECT ) ) {
         if ( wmGetActiveWindow( ) == this ) {
             wmShowWindow(
-                makeMenu(
-                    1,
-                    1,
-                    20,
-                    10,
-                    Color_White,
-                    Color_Blue,
-                    "Disasters",
-                    { 
-                        { "Earthquake", [ ] { game.sim.makeEarthquake( ); } },
-                        { "Fire", [ ] { game.sim.makeFire( ); } },
-                        { "Fire bombs", [ ] { game.sim.makeFireBombs( ); } },
-                        { "Flood", [ ] { game.sim.makeFlood( ); } },
-                        { "Monster", [ ] { game.sim.makeMonster( ); } },
-                        { "Tornado", [ ] { game.sim.makeTornado( ); } },
-                        { "Meltdown", [ ] { game.sim.makeMeltdown( ); } }
-                    }
-                )
+                makeMainMenu( )
+                //makeFileMenu( )
+                //makeOptionsMenu( 1, 1, 20, 10 )
+                //makeScenarioMenu( 0, 0, TextConsoleWidth, 10 )
+                // makeMenu(
+                //     1,
+                //     1,
+                //     20,
+                //     10,
+                //     Color_White,
+                //     Color_Blue,
+                //     "Disasters",
+                //     { 
+                //         { "Earthquake", [ ] { game.sim.makeEarthquake( ); } },
+                //         { "Fire", [ ] { game.sim.makeFire( ); } },
+                //         { "Fire bombs", [ ] { game.sim.makeFireBombs( ); } },
+                //         { "Flood", [ ] { game.sim.makeFlood( ); } },
+                //         { "Monster", [ ] { game.sim.makeMonster( ); } },
+                //         { "Tornado", [ ] { game.sim.makeTornado( ); } },
+                //         { "Meltdown", [ ] { game.sim.makeMeltdown( ); } }
+                //     }
+                // )
             );
         }
     }
@@ -519,7 +533,7 @@ void Game::simCallback( Micropolis* sim, void* data, const char* name, const cha
                 if ( ( gamePtr = ( Game* ) data ) != nullptr )
                     gamePtr->showMessage( messageNo );
 
-                if ( sim->autoGoto ) {
+                if ( sim->autoGoto && isImportant ) {
                     gamePtr->scrollTo( mx, my );
                 }
             }
@@ -532,20 +546,39 @@ void Game::showMessage( int messageId ) {
 
     if ( messageId > 0 && messageId <= MESSAGE_LAST ) {
         if ( messageTable[ messageId ] != nullptr ) {
-            strncpy( gameMessage, messageTable[ messageId ], TextConsoleWidth );
-            len = strlen( gameMessage );
+            showMessage( messageTable[ messageId ] );
 
-            clearMessage( );
+            // strncpy( gameMessage, messageTable[ messageId ], TextConsoleWidth );
+            // len = strlen( gameMessage );
 
-            textSaveColors( );
-                textSetColor( Color_White, Color_Black );
-                textSetCursor( ( TextConsoleWidth - len ) / 2, Message_Y );
-                textPuts( gameMessage );
-            textRestoreColors( );
+            // clearMessage( );
 
-            eraseMessageTick = timerMillis( ) + Config_Message_Show_Time;
+            // textSaveColors( );
+            //     textSetColor( Color_White, Color_Black );
+            //     textSetCursor( ( TextConsoleWidth - len ) / 2, Message_Y );
+            //     textPuts( gameMessage );
+            // textRestoreColors( );
+
+            // eraseMessageTick = timerMillis( ) + Config_Message_Show_Time;
         }
     }
+}
+
+void Game::showMessage( const char* message ) {
+    int len = 0;
+
+    strncpy( gameMessage, message, TextConsoleWidth );
+    len = strlen( gameMessage );
+
+    clearMessage( );
+
+    textSaveColors( );
+        textSetColor( Color_White, Color_Black );
+        textSetCursor( ( TextConsoleWidth - len ) / 2, Message_Y );
+        textPuts( gameMessage );
+    textRestoreColors( );
+
+    eraseMessageTick = timerMillis( ) + Config_Message_Show_Time;
 }
 
 void Game::clearMessage( void ) {
@@ -571,4 +604,12 @@ void Game::scrollTo( int x, int y ) {
     renderer->scrollTo( scrollX, scrollY );
 
     needsRedraw = true;
+}
+
+void Game::setTandyRenderer( void ) {
+    setRenderer( &rendererTandy );
+}
+
+void Game::setMCGARenderer( void ) {
+    setRenderer( &rendererMCGA );
 }

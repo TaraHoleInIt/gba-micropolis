@@ -72,9 +72,15 @@ public:
     Window* wmGetActiveWindow( void );
 
     void showMessage( int messageId );
+    void showMessage( const char* message );
     void clearMessage( void );
 
     void scrollTo( int x, int y );
+
+    Micropolis& getSim( void ) { return sim; }
+
+    void setTandyRenderer( void );
+    void setMCGARenderer( void );
 
     friend class Cursor;
 };

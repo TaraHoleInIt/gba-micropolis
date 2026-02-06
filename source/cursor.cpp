@@ -9,6 +9,12 @@
 #include "IWorldRenderer.h"
 #include "Game.h"
 
+typedef struct {
+    const char* toolName;
+    const Sprite* toolIcon;
+    int toolId;
+} ToolDef;
+
 static const Sprite cursor8x8 = makeSprite16( 544, Sprite_8x8, SQUARE, 0, 0, 0 );
 
 static const Sprite cursorCornerNW = makeSprite16( 512, Sprite_8x8, SQUARE, 0, 0, 0 );
@@ -30,6 +36,24 @@ static const Sprite toolIconPowerPlant = makeSprite16( 589, Sprite_32x16, WIDE, 
 static const Sprite toolIconSeaport = makeSprite16( 593, Sprite_32x16, WIDE, 9, 0, 0 );
 static const Sprite toolIconAirport = makeSprite16( 597, Sprite_32x16, WIDE, 8, 0, 0 );
 static const Sprite toolIconWire = makeSprite16( 601, Sprite_32x16, WIDE, 8, 0, 0 );
+
+static const ToolDef tools[ ] = {
+    { "Residential", &toolIconResidential, TOOL_RESIDENTIAL },
+    { "Commercial", &toolIconCommercial, TOOL_COMMERCIAL },
+    { "Industrial", &toolIconIndustrial, TOOL_INDUSTRIAL },
+    { "Fire station", &toolIconFirestation, TOOL_FIRESTATION },
+    { "Police station", &toolIconPolice, TOOL_POLICESTATION },
+    { "Power line", &toolIconWire, TOOL_WIRE },
+    { "Bulldozer", &toolIconBulldozer, TOOL_BULLDOZER },
+    { "Railroad track", &toolIconRail, TOOL_RAILROAD },
+    { "Road", &toolIconRoad, TOOL_ROAD },
+    { "Stadium", &toolIconStadium, TOOL_STADIUM },
+    { "Park", &toolIconPark, TOOL_PARK },
+    { "Seaport", &toolIconSeaport, TOOL_SEAPORT },
+    { "Coal power plant", &toolIconPowerPlant, TOOL_COALPOWER },
+    { "Nuclear power plant", &toolIconPowerPlant, TOOL_NUCLEARPOWER },
+    { "Airport", &toolIconAirport, TOOL_AIRPORT }
+};
 
 static const Sprite* toolIcons[ ] = {
     &toolIconResidential,
@@ -54,12 +78,36 @@ static const Sprite* toolIcons[ ] = {
     nullptr,    // Forest has no icon
 };
 
+static const char* toolNames[ ] = {
+    "Residential",
+    "Commercial",
+    "Industrial",
+    "Fire station",
+    "Police station",
+    nullptr,
+    "Power line",
+    "Bulldozer",
+    "Railroad track",
+    "Road",
+    "Stadium",
+    "Park",
+    "Seaport",
+    "Coal power plant",
+    "Nuclear power plant",
+    "Airport",
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr
+};
+
 Cursor::Cursor( void ) {
     tool = EditingTool::TOOL_ROAD;
     x = 0;
     y = 0;
     placeOk = false;
     toolSize = 0;
+    curToolIndex = 0;
 
     setTool( TOOL_RESIDENTIAL );
 }
@@ -113,10 +161,15 @@ EditingTool Cursor::getTool( void ) {
 }
 
 void Cursor::setTool( EditingTool newTool ) {
+    int tooli = ( int ) newTool;
+
     tool = newTool;
     toolSize = game.sim.getToolSize( tool );
 
     placeOk = canPlaceTool( );
+
+    if ( toolNames[ tooli ] )
+        game.showMessage( toolNames[ tooli ] );
 }
 
 void Cursor::doTool( void ) {
@@ -193,19 +246,35 @@ void Cursor::getToolIconPosition( int cursorScreenX, int cursorScreenY, int& xOf
 }
 
 void Cursor::nextTool( void ) {
-    int tid = ( int ) tool;
+    curToolIndex++;
+    curToolIndex = clamp( curToolIndex, 0, ( int ) ( sizeof( tools ) / sizeof( tools[ 0 ] ) - 1 ) );
 
-    tid++;
-    tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
+    setTool( toolFromIndex( curToolIndex ) );
+    // int tid = ( int ) tool;
 
-    setTool( ( EditingTool ) tid );
+    // tid++;
+    // tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
+
+    // setTool( ( EditingTool ) tid );
 }
 
 void Cursor::prevTool( void ) {
-    int tid = ( int ) tool;
+    curToolIndex--;
+    curToolIndex = clamp( curToolIndex, 0, ( int ) ( sizeof( tools ) / sizeof( tools[ 0 ] ) - 1 ) );
 
-    tid--;
-    tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
+    setTool( toolFromIndex( curToolIndex ) );
 
-    setTool( ( EditingTool ) tid );
+    // int tid = ( int ) tool;
+
+    // tid--;
+    // tid = clamp( tid, ( int ) TOOL_RESIDENTIAL, ( int ) TOOL_AIRPORT );
+
+    // setTool( ( EditingTool ) tid );
+}
+
+EditingTool Cursor::toolFromIndex( int tooli ) {
+    if ( tooli < 0 || tooli >= TOOL_COUNT )
+        return TOOL_RESIDENTIAL;
+
+    return ( EditingTool ) tools[ tooli ].toolId;
 }
