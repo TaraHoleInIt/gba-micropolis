@@ -3,4 +3,6 @@ temp
 *.DS_Store
 .vscode/*
 .github*
-
+micropolis-gba.gba
+micropolis-gba.elf
+micropolis-gba.sav

@@ -189,7 +189,7 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
         if ( keysDown & KEY_R )
             cursor.nextTool( );
 
-        if ( keysDown & KEY_A )
+        if ( keysHeld & KEY_A )
             cursor.doTool( );
     }
 }
