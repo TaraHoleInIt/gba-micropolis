@@ -389,13 +389,6 @@ void Game::runFrame( void ) {
             clearStatusBars( );
     }
 
-    if ( ( held & KEY_SELECT ) && ( down & KEY_START ) ) {
-        if ( renderer == &rendererMCGA )
-            setRenderer( &rendererTandy );
-        else
-            setRenderer( &rendererMCGA );
-    }
-
     if ( ( down & KEY_START ) && ! ( ( held | down ) & KEY_SELECT ) ) {
         if ( wmGetActiveWindow( ) == this ) {
             wmShowWindow(
@@ -525,19 +518,6 @@ void Game::showMessage( int messageId ) {
     if ( messageId > 0 && messageId <= MESSAGE_LAST ) {
         if ( messageTable[ messageId ] != nullptr ) {
             showMessage( messageTable[ messageId ] );
-
-            // strncpy( gameMessage, messageTable[ messageId ], TextConsoleWidth );
-            // len = strlen( gameMessage );
-
-            // clearMessage( );
-
-            // textSaveColors( );
-            //     textSetColor( Color_White, Color_Black );
-            //     textSetCursor( ( TextConsoleWidth - len ) / 2, Message_Y );
-            //     textPuts( gameMessage );
-            // textRestoreColors( );
-
-            // eraseMessageTick = timerMillis( ) + Config_Message_Show_Time;
         }
     }
 }
