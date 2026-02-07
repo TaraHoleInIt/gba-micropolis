@@ -1777,6 +1777,7 @@ public:
     bool loadFile( const unsigned char* data, size_t size );
 
     bool saveFile(const char *filename);
+    bool saveFileMem( unsigned char* mem, size_t size );
 
     void loadScenario(Scenario s);
     void loadScenario( Scenario s, const unsigned char* data, size_t size );
@@ -1784,12 +1785,14 @@ public:
     void didLoadScenario();
 
     bool loadCity(const char *filename);
+    bool loadCity( const unsigned char* data );
 
     void didLoadCity();
 
     void didntLoadCity(const char *msg);
 
     void saveCity();
+    void saveCity( unsigned char* buffer );
 
     void doSaveCityAs();
 

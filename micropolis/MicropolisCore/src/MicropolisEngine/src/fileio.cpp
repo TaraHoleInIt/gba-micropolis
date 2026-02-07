@@ -158,14 +158,39 @@ static void half_swap_longs(long *buf, int len)
  * @param src Source buffer
  * @return True; loads from memory always succeed
  */
-static bool load_short_mem( short* dst, const short* src, int len ) {
-#ifdef IS_INTEL
-    while ( len-- )
-        *dst++ = __builtin_bswap16( *src++ );
-#else
-    while ( len-- )
-        *dst++ = *src++;
-#endif
+static bool load_short_mem( short* dst, const uint8_t* src, int len ) {
+    uint8_t hi = 0;
+    uint8_t lo = 0;
+    short temp = 0;
+
+    while ( len-- ) {
+        hi = *src++;
+        lo = *src++;
+
+        temp = ( ( hi << 8 ) | lo );
+
+        *dst++ = temp;
+    }
+
+    return true;
+}
+
+/**
+ * Save an array of short values from memory to memory.
+ *
+ * Convert to the correct endianness first, if necessary
+ * @param dst Buffer to put the loaded short values in.
+ * @param len Number of short values to save
+ * @param src Source buffer
+ * @return True; saves to memory always succeed
+ */
+static bool save_short_mem( uint8_t* dst, const short* src, int len ) {
+    while ( len-- ) {
+        short temp = *src++;
+
+        *dst++ = ( temp >> 8 ) & 0xFF;
+        *dst++ = temp & 0xFF;
+    }
 
     return true;
 }
@@ -225,14 +250,14 @@ bool Micropolis::loadFileMem( const unsigned char* data, size_t size ) {
     const short* ptr = ( const short* ) data;
     
     if ( data != nullptr && size == 27120 ) {
-        load_short_mem( resHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( comHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( indHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( crimeHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( pollutionHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( moneyHist, ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
-        load_short_mem( miscHist, ptr, MISC_HISTORY_LENGTH / sizeof( short ) ); ptr+= MISC_HISTORY_LENGTH / sizeof( short );
-        load_short_mem( ( ( short* ) &map[ 0 ][ 0 ] ), ptr, WORLD_W * WORLD_H );
+        load_short_mem( resHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( comHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( indHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( crimeHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( pollutionHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( moneyHist, ( uint8_t* ) ptr, HISTORY_LENGTH / sizeof( short ) ); ptr+= HISTORY_LENGTH / sizeof( short );
+        load_short_mem( miscHist, ( uint8_t* ) ptr, MISC_HISTORY_LENGTH / sizeof( short ) ); ptr+= MISC_HISTORY_LENGTH / sizeof( short );
+        load_short_mem( ( ( short* ) &map[ 0 ][ 0 ] ), ( uint8_t* ) ptr, WORLD_W * WORLD_H );
 
         return true;
     }
@@ -525,6 +550,54 @@ bool Micropolis::saveFile(const char *filename)
     return result;
 }
 
+bool Micropolis::saveFileMem( unsigned char* mem, size_t size ) {
+    long n = 0;
+
+    /* total funds is a long.....    miscHist is array of ints */
+    /* total funds is bien put in the 50th & 51th word of miscHist */
+    /* find the address, cast the ptr to a longPtr, take contents */
+
+    n = totalFunds;
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 50)) = n;
+
+    n = cityTime;
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 8)) = n;
+
+    miscHist[52] = autoBulldoze;   // flag for autoBulldoze
+    miscHist[53] = autoBudget;     // flag for autoBudget
+    miscHist[54] = autoGoto;       // flag for auto-goto
+    miscHist[55] = enableSound;    // flag for the sound on/off
+    miscHist[57] = simSpeed;
+    miscHist[56] = cityTax;        /* post release */
+
+    /* yayaya */
+
+    n = (int)(policePercent * 65536);
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 58)) = n;
+
+    n = (int)(firePercent * 65536);
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 60)) = n;
+
+    n = (int)(roadPercent * 65536);
+    HALF_SWAP_LONGS(&n, 1);
+    (*(Quad *)(miscHist + 62)) = n;
+
+    save_short_mem( mem, resHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, comHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, indHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, crimeHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, pollutionHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, moneyHist, HISTORY_LENGTH / 2 ); mem+= HISTORY_LENGTH;
+    save_short_mem( mem, miscHist, MISC_HISTORY_LENGTH / 2 ); mem+= MISC_HISTORY_LENGTH;
+    save_short_mem( mem, ( short * )&map[ 0 ][ 0 ], WORLD_W * WORLD_H );
+
+    return true;
+}
+
 void Micropolis::loadScenario( Scenario s, const unsigned char* data, size_t size ) {
     const char *name = NULL;
     const char *fname = NULL;
@@ -750,6 +823,105 @@ bool Micropolis::loadCity(const char *filename)
     }
 }
 
+bool Micropolis::loadCity( const uint8_t* data ) {
+    uint8_t cityNameLen = 0;
+    char cityName[ 64 ];
+    bool res = false;
+    uint32_t id = 0;
+    int len = 0;
+    long n = 0;
+
+    memset( cityName, 0, sizeof( cityName ) );
+
+    id = *data++ << 24;
+    id |= *data++ << 16;
+    id |= *data++ << 8;
+    id |= *data++;
+
+    if ( id == 0x43495459 ) {
+        cityNameLen = *data++;
+        len = ( cityNameLen >= sizeof( cityName ) ) ? sizeof( cityName ) - 1 : cityNameLen;
+
+        strncpy( cityName, ( const char* ) data, len );
+        data+= cityNameLen;
+
+        res = loadFileMem( data, 27120 );
+
+        if ( res ) {
+            n = *(Quad *)(miscHist + 50);
+
+            HALF_SWAP_LONGS(&n, 1);
+            setFunds(n);
+
+            n = *(Quad *)(miscHist + 8);
+            HALF_SWAP_LONGS(&n, 1);
+            cityTime = n;
+
+            setAutoBulldoze(miscHist[52] != 0);   // flag for autoBulldoze
+            setAutoBudget(miscHist[53] != 0);     // flag for autoBudget
+            setAutoGoto(miscHist[54] != 0);       // flag for auto-goto
+            setEnableSound(miscHist[55] != 0);    // flag for the sound on/off
+            setCityTax(miscHist[56]);
+            setSpeed(miscHist[57]);
+            changeCensus();
+            mustUpdateOptions = true;
+
+            /* yayaya */
+
+            n = *(Quad *)(miscHist + 58);
+            HALF_SWAP_LONGS(&n, 1);
+            policePercent = ((float)n) / ((float)65536);
+
+            n = *(Quad *)(miscHist + 60);
+            HALF_SWAP_LONGS(&n, 1);
+            firePercent = (float)n / (float)65536.0;
+
+            n = *(Quad *)(miscHist + 62);
+            HALF_SWAP_LONGS(&n, 1);
+            roadPercent = (float)n / (float)65536.0;
+
+            policePercent =
+                (float)(*(Quad*)(miscHist + 58)) /
+                (float)65536.0;   /* and 59 */
+            firePercent =
+                (float)(*(Quad*)(miscHist + 60)) /
+                (float)65536.0;   /* and 61 */
+            roadPercent =
+                (float)(*(Quad*)(miscHist + 62)) /
+                (float)65536.0;   /* and 63 */
+
+            cityTime = max((Quad)0, cityTime);
+
+            // If the tax is nonsensical, set it to a reasonable value.
+            if (cityTax > 20 || cityTax < 0) {
+                setCityTax(7);
+            }
+
+            // If the speed is nonsensical, set it to a reasonable value.
+            if (simSpeed < 0 || simSpeed > 3) {
+                setSpeed(3);
+            }
+
+            setSpeed(simSpeed);
+            setPasses(1);
+            initFundingLevel();
+
+            // Set the scenario id to 0.
+            initWillStuff();
+            scenario = SC_NONE;
+            initSimLoad = 1;
+            doInitialEval = false;
+            doSimInit();
+            invalidateMaps();
+
+            this->setCityName( cityName );
+            didLoadCity( );
+        }
+    }
+
+    return res;
+}
+
 /** Report to the frontend that the game was successfully loaded. */
 void Micropolis::didLoadCity()
 {
@@ -791,6 +963,22 @@ void Micropolis::saveCity()
     }
 }
 
+void Micropolis::saveCity( unsigned char* ptr ) {
+    int cityNameLen = 0;
+
+    *ptr++ = 0x43;
+    *ptr++ = 0x49;
+    *ptr++ = 0x54;
+    *ptr++ = 0x59;
+
+    cityNameLen = cityName.length( ) + 1;
+
+    *ptr++ = cityNameLen;
+    strcpy( ( char* ) ptr, cityName.c_str( ) );
+    ptr+= cityNameLen;
+
+    saveFileMem( ptr, 27120 );
+}
 
 /** Report to the frontend that the city is being saved. */
 void Micropolis::doSaveCityAs()

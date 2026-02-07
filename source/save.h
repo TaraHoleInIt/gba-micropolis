@@ -3,4 +3,7 @@
 
 bool saveInit( void );
 
+void sramRead( int offset, uint8_t* dest, int length );
+void sramWrite( int offset, const uint8_t* src, int length );
+
 #endif

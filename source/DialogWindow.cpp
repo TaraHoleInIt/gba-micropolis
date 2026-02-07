@@ -1,6 +1,8 @@
+#include <gba_interrupt.h>
 #include "DialogWindow.h"
 #include "Game.h"
 #include "scenarios.h"
+#include "save.h"
 
 TextWindow* makeDialog( int x, int y, int width, int height, int fgColor, int bgColor, const char* title, const char* text ) {
     TextWindow* tw = new TextWindow( x, y, width, height, fgColor, bgColor, title );
@@ -47,43 +49,59 @@ TextWindow* makeScenarioMenu( void ) {
         {
             { "DULLSVILLE, USA        1900", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_DULLSVILLE, dullsville_bin, dullsville_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_DULLSVILLE, dullsville_bin, dullsville_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "SAN FRANCISCO, CA.     1906", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_SAN_FRANCISCO, sanfran_bin, sanfran_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_SAN_FRANCISCO, sanfran_bin, sanfran_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "HAMBURG, GERMANY       1944", 
                 [ ] ( void ) {
-                game.getSim( ).loadScenario( SC_HAMBURG, hamburg_bin, hamburg_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                    irqDisable( IRQ_VBLANK );
+                        game.getSim( ).loadScenario( SC_HAMBURG, hamburg_bin, hamburg_bin_size );
+                        game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                    irqEnable( IRQ_VBLANK );
             } },
             { "BERN, SWITZERLAND      1965", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_BERN, bern_bin, bern_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_BERN, bern_bin, bern_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "TOKYO, JAPAN           1957",
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "DETROIT, MI.           1972", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_DETROIT, detroit_bin, detroit_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_DETROIT, detroit_bin, detroit_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "BOSTON, MA.            2010", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_BOSTON, boston_bin, boston_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_BOSTON, boston_bin, boston_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
             { "RIO DE JANEIRO, BRAZIL 2047", 
             [ ] ( void ) { 
-                game.getSim( ).loadScenario( SC_RIO, rio_bin, rio_bin_size );
-                game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqDisable( IRQ_VBLANK );
+                    game.getSim( ).loadScenario( SC_RIO, rio_bin, rio_bin_size );
+                    game.showMessage( MESSAGE_LOADED_SAVED_CITY );
+                irqEnable( IRQ_VBLANK );
             } },
         }
     );
@@ -169,7 +187,7 @@ TextWindow* makeFileMenu( void ) {
         0,
         0,
         25,
-        8,
+        10,
         Color_White,
         Color_Blue,
         "File",
@@ -177,49 +195,67 @@ TextWindow* makeFileMenu( void ) {
             {
                 "Save city",
                 [ ] ( void ) {
-                    game.showMessage( "Not yet implemented" );
+                    irqDisable( IRQ_VBLANK );
+                        game.getSim( ).saveCity( ( unsigned char* ) SRAM );
+                        game.showMessage( "Saved city" );
+                    irqEnable( IRQ_VBLANK );
+                }
+            },
+            {
+                "Load city",
+                [ ] ( void ) {
+                    irqDisable( IRQ_VBLANK );
+                        game.getSim( ).loadCity( ( const unsigned char* ) SRAM );
+                        game.showMessage( "Loaded saved city" );
+                    irqEnable( IRQ_VBLANK );
                 }
             },
             {
                 "Start new city (Easy)",
                 [ ] ( void ) {
-                    Micropolis& sim = game.getSim( );
-                    
-                    // hackhackhack
-                    sim.generateSomeCity( rand( ) );
-                    sim.setCityName( "New City" );
-                    sim.setGameLevel( LEVEL_EASY );
-                    sim.setFunds( 20000 );
+                    irqDisable( IRQ_VBLANK );
+                        Micropolis& sim = game.getSim( );
+                        
+                        // hackhackhack
+                        sim.generateSomeCity( rand( ) );
+                        sim.setCityName( "New City" );
+                        sim.setGameLevel( LEVEL_EASY );
+                        sim.setFunds( 20000 );
 
-                    game.showMessage( "Started a new city" );
+                        game.showMessage( "Started a new city" );
+                    irqEnable( IRQ_VBLANK );
                 },
             },
             {
                 "Start new city (Medium)",
                 [ ] ( void ) {
-                    Micropolis& sim = game.getSim( );
-                    
-                    // hackhackhack
-                    sim.generateSomeCity( rand( ) );
-                    sim.setCityName( "New City" );
-                    sim.setGameLevel( LEVEL_MEDIUM );
-                    sim.setFunds( 10000 );
+                    irqDisable( IRQ_VBLANK );
+                        Micropolis& sim = game.getSim( );
+                        
+                        // hackhackhack
+                        sim.generateSomeCity( rand( ) );
+                        sim.setCityName( "New City" );
+                        sim.setGameLevel( LEVEL_MEDIUM );
+                        sim.setFunds( 10000 );
 
-                    game.showMessage( "Started a new city" );
+                        game.showMessage( "Started a new city" );
+                    irqEnable( IRQ_VBLANK );
                 },
             },
             {
                 "Start new city (Hard)",
                 [ ] ( void ) {
-                    Micropolis& sim = game.getSim( );
-                    
-                    // hackhackhack
-                    sim.generateSomeCity( rand( ) );
-                    sim.setCityName( "New City" );
-                    sim.setGameLevel( LEVEL_HARD );
-                    sim.setFunds( 5000 );
+                    irqDisable( IRQ_VBLANK );
+                        Micropolis& sim = game.getSim( );
+                        
+                        // hackhackhack
+                        sim.generateSomeCity( rand( ) );
+                        sim.setCityName( "New City" );
+                        sim.setGameLevel( LEVEL_HARD );
+                        sim.setFunds( 5000 );
 
-                    game.showMessage( "Started a new city" );
+                        game.showMessage( "Started a new city" );
+                    irqEnable( IRQ_VBLANK );
                 },
             },
             {

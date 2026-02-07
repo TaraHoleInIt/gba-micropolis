@@ -118,8 +118,8 @@ Game::Game( void ) {
     gameReady = false;
     needsRedraw = true;
 
-    //sim.generateSomeCity( 0xAABBCCDD );
-    sim.loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
+    sim.generateSomeCity( 0xAABBCCDD );
+    //sim.loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
     sim.setAutoGoto( true );
     sim.setSpeed( 1 );
     sim.setPasses( 1 );
@@ -182,6 +182,15 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
             eraseMessageTick = 0xFFFFFFFF;
             clearMessage( );
         }
+
+        if ( keysDown & KEY_L )
+        cursor.prevTool( );
+
+        if ( keysDown & KEY_R )
+            cursor.nextTool( );
+
+        if ( keysDown & KEY_A )
+            cursor.doTool( );
     }
 }
 
@@ -395,20 +404,10 @@ void Game::runFrame( void ) {
         }
     }
 
-    if ( down & KEY_L )
-        cursor.prevTool( );
-
-    if ( down & KEY_R )
-        cursor.nextTool( );
-
-    if ( held & KEY_A )
-        cursor.doTool( );
-
     if ( down & KEY_B )
         wmPopLastWindow( );
 
     activeWin = wmGetActiveWindow( );
-
     activeWin->tick( timerMillis( ), down, held, up );
 }
 
