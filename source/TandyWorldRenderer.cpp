@@ -28,7 +28,7 @@ static const int maxScrollY = ( WORLD_H * 8 ) - SCREEN_HEIGHT;
 
 static const uint16_t* tileMap = ( const uint16_t* ) tandy_map_bin;
 
-IWRAM_DATA volatile uint16_t TandyWorldRenderer::mapShadow[ 32 * 32 ];
+EWRAM_DATA volatile uint16_t TandyWorldRenderer::mapShadow[ 32 * 32 ];
 
 void TandyWorldRenderer::init( void) {
     dmaCopy( tandy_palette_bin, BG_PALETTE, tandy_palette_bin_size );
@@ -76,6 +76,9 @@ IWRAM_CODE void TandyWorldRenderer::update( unsigned short* simMap[ WORLD_W ] ) 
 
     REG_BG0HOFS = scrollX & 0x07;
     REG_BG0VOFS = scrollY & 0x07;
+}
+
+void TandyWorldRenderer::vblank( void ) {
 }
 
 IWRAM_CODE void TandyWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {

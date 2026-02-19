@@ -11,6 +11,10 @@
 
 #include "TextWindow.h"
 #include "DialogWindow.h"
+#include "maxmod.h"
+#include "soundbank.h"
+
+#include "title_city_bin.h"
 
 #define MosaicBGSizeH( size ) ( ( size ) & 0x0F )
 #define MosaicBGSizeV( size ) ( ( ( size ) & 0x0F ) << 4 )
@@ -112,17 +116,22 @@ Game::Game( void ) {
     nextScrollTick = 0;
     nextStatusBarTick = 0;
     eraseMessageTick = 0xFFFFFFFF;
+    nextMusicCheckTick = 0;
+
+    lastMusicId = -1;
 
     memset( gameMessage, 0, sizeof( gameMessage ) );
 
     gameReady = false;
     needsRedraw = true;
 
-    sim.generateSomeCity( 0xAABBCCDD );
+    //sim.generateSomeCity( 0xAABBCCDD );
     //sim.loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
+    sim.loadCity( title_city_bin );
     sim.setAutoGoto( true );
     sim.setSpeed( 1 );
     sim.setPasses( 1 );
+    sim.setEnableSound( true );
     sim.simTick( );
 
     sim.callbackHook = simCallback;
@@ -143,6 +152,8 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
     int right = 0;
     int top = 0;
     int bottom = 0;
+    int track = 0;
+    int tries = 0;
 
     if ( gameRunning ) {
         if ( tickNow >= nextScrollTick ) {
@@ -154,7 +165,29 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
             nextSimTick = tickNow + Config_SimTick_Time;
             sim.simTick( );
 
+            renderer->update( sim.map );
             needsRedraw = true;
+        }
+
+        if ( tickNow >= nextMusicCheckTick ) {
+            nextMusicCheckTick = tickNow + 2000;
+
+            // Check if we need to start music
+            if ( musicIsPlaying( ) == false ) {
+                tries = 3;
+
+                do {
+                    track = musicGetRandomTrackIndex( );
+                    tries--;
+                } while ( track == lastMusicId && tries > 0 );
+
+                // Don't get stuck forever, which might happen if there's only one track in the bank
+                if ( tries == 0 )
+                    track = lastMusicId;
+
+                musicStart( track, false );
+                lastMusicId = track;
+            }
         }
 
         if ( tickNow >= nextTileAnimateTick ) {
@@ -168,6 +201,8 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
             bottom >>= 3;
 
             sim.animateTiles( left, top, left + ( SCREEN_WIDTH / 8 ), top + ( SCREEN_HEIGHT / 8 ) );
+
+            renderer->update( sim.map );
             needsRedraw = true;
         }
 
@@ -197,7 +232,10 @@ void Game::tick( uint32_t tickNow, int keysDown, int keysHeld, int keysUp ) {
 void Game::vblank( void ) {
     if ( gameReady ) {
         if ( needsRedraw ) {
-            renderer->update( sim.map );
+            needsRedraw = false;
+
+            //renderer->update( sim.map );
+            renderer->vblank( );
             spriteUpdate( );
         }
     }
@@ -343,6 +381,7 @@ void Game::handleScrolling( int keysHeld ) {
 
         cursor.moveBy( dx, dy );
         renderer->scrollTo( scrollX, scrollY );
+        renderer->update( sim.map );
 
         needsRedraw = true;
     }
@@ -482,6 +521,8 @@ void Game::clearStatusBars( void ) {
 }
 
 void Game::simCallback( Micropolis* sim, void* data, const char* name, const char* params, va_list args ) {
+    const char* soundChannel = nullptr;
+    const char* soundName = nullptr;
     const char* updateType = nullptr;
     Game* gamePtr = nullptr;
     int isImportant = false;
@@ -507,8 +548,15 @@ void Game::simCallback( Micropolis* sim, void* data, const char* name, const cha
                 if ( sim->autoGoto && isImportant ) {
                     gamePtr->scrollTo( mx, my );
                 }
-            }
+            } 
         }
+    } else if ( strcmp( name, "makeSound" ) == 0 ) {
+        soundChannel = va_arg( args, const char* );
+        soundName = va_arg( args, const char* );
+        mx = va_arg( args, int );
+        my = va_arg( args, int );
+
+        mgbaPrintf( "makeSound( chan: %s, name: %s, x: %d, y: %d )\n", soundChannel, soundName, mx, my );
     }
 }
 
@@ -524,6 +572,10 @@ void Game::showMessage( int messageId ) {
 
 void Game::showMessage( const char* message ) {
     int len = 0;
+
+    // hack to avoid tool change text before the game is up
+    if ( ! gameReady || ! gameRunning )
+        return;
 
     strncpy( gameMessage, message, TextConsoleWidth );
     len = strlen( gameMessage );
@@ -570,4 +622,30 @@ void Game::setTandyRenderer( void ) {
 
 void Game::setMCGARenderer( void ) {
     setRenderer( &rendererMCGA );
+}
+
+void Game::musicStart( int trackIndex, bool loop ) {
+    trackIndex = clamp( trackIndex, 0, MSL_NSONGS - 1 );
+
+    if ( mmActive( ) )
+        mmStop( );
+
+    mmStart( trackIndex, ( loop ) ? MM_PLAY_LOOP : MM_PLAY_ONCE );
+}
+
+void Game::musicStop( void ) {
+    mmStop( );
+}
+
+int Game::musicGetRandomTrackIndex( void ) {
+    return randomRange( 0, MSL_NSONGS - 1 );
+}
+
+bool Game::musicIsPlaying( void ) {
+    return mmActive( );
+}
+
+// Source: https://stackoverflow.com/a/18386648
+int Game::randomRange( int min, int max ) {
+    return min + rand( ) / ( RAND_MAX / ( max - min + 1 ) + 1 );
 }

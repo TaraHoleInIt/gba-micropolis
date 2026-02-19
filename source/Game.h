@@ -28,6 +28,9 @@ private:
     uint32_t nextScrollTick;
     uint32_t nextStatusBarTick;
     uint32_t eraseMessageTick;
+    uint32_t nextMusicCheckTick;
+
+    int lastMusicId;
 
     bool needsRedraw;
     bool gameReady;
@@ -55,6 +58,10 @@ private:
 
     char gameMessage[ TextConsoleWidth + 1 ];
 
+    int musicGetRandomTrackIndex( void );
+    bool musicIsPlaying( void );
+
+    int randomRange( int min, int max );
 public:
     Game( void );
 
@@ -81,6 +88,9 @@ public:
 
     void setTandyRenderer( void );
     void setMCGARenderer( void );
+
+    void musicStart( int trackIndex, bool loop );
+    void musicStop( void );
 
     friend class Cursor;
 };

@@ -21,11 +21,16 @@
 
 #include "scenarios.h"
 
+#include "maxmod.h"
+#include "soundbank.h"
+#include "soundbank_bin.h"
+
 int gettimeofday( struct timeval* tv, void* tzp );
 uint32_t generateEntropy( void );
-void irqVBlankPreGame( void );
 void irqVBlankGame( void );
-void processEvents( uint32_t tickNow );
+void maxmodSetup( void );
+
+__attribute__( ( used ) ) __attribute__( ( aligned( 4 ) ) ) const char* saveTag = "SRAM_V110";
 
 IWRAM_DATA Micropolis* sim = nullptr;
 
@@ -41,9 +46,19 @@ IWorldRenderer* renderer = nullptr;
 static uint32_t seed = 0;
 
 static volatile int gameReady = 0;
+static volatile int rngReady = 0;
 
 int gettimeofday( struct timeval* tv, void* tzp ) {
-	uint32_t timeNow = timerMillis( );
+	uint32_t timeNow = 0;
+
+	if ( rngReady == 0 ) {
+		seed = generateEntropy( );
+		rngReady++;
+
+		srand( seed );
+	}
+	
+	timeNow = timerMillis( );
 
 	tv->tv_sec = ( timeNow / 1000 ) + seed;
 	tv->tv_usec = timeNow * 1000;
@@ -51,12 +66,9 @@ int gettimeofday( struct timeval* tv, void* tzp ) {
 	return 0;
 }
 
-void irqVBlankPreGame( void ) {
-	//inputUpdateVBlank( );
-	frameCount++;
-}
-
 void irqVBlankGame( void ) {
+	mmFrame( );
+
 	game.vblank( );
 	frameCount++;
 }
@@ -68,7 +80,16 @@ uint32_t generateEntropy( void ) {
 	uint32_t lastHeld = 0;
 	uint32_t held = 0;
 
-	textPrintfCenter( y, "Generating entropy..." );
+	// Make sure timer and text subsystems are up
+	REG_DISPCNT = 0;
+
+	irqInit( );
+	irqEnable( IRQ_VBLANK );
+
+	timerInit( );
+	textAndDebugInit( );
+
+	textPrintfCenter( y, "Generating randomness..." );
 	textPrintfCenter( y + 1, "Mash buttons for a while." );
 	textPrintfCenter( y + 2, "Press START to finish." );
 
@@ -87,157 +108,57 @@ uint32_t generateEntropy( void ) {
 
 			lastHeld = held;
 		}
-	} while ( ! ( held & KEY_START) );
+	} while ( ! ( held & KEY_START ) );
 
 	textClearScreen( );
+	textPrintfCenter( y, "Loading..." );
 
 	return result;
 }
 
 #define REG_WAITCNT ( *( volatile u16* ) 0x04000204 )
 
+IWRAM_DATA static uint8_t mixBuffer[ MM_MIXLEN_16KHZ ] __attribute( ( aligned( 4 ) ) );
+
+void maxmodSetup( void ) {
+	uint8_t* musicBuffers = nullptr;
+	mm_gba_system mmGBA;
+
+	musicBuffers = ( uint8_t* ) malloc( ( 20  * ( MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH ) ) + MM_MIXLEN_16KHZ );
+	assert( musicBuffers != nullptr );
+
+	mmGBA.mixing_mode = MM_MIX_16KHZ;
+	mmGBA.mod_channel_count = 20;
+	mmGBA.mix_channel_count = 20;
+
+	mmGBA.module_channels = ( mm_addr ) musicBuffers;
+	mmGBA.active_channels = ( mm_addr ) ( musicBuffers + ( 20 * MM_SIZEOF_MODCH ) );
+	mmGBA.mixing_channels = ( mm_addr ) ( musicBuffers + ( 20 * ( MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH ) ) );
+	mmGBA.mixing_memory = ( mm_addr ) mixBuffer;
+	mmGBA.wave_memory = ( mm_addr ) ( musicBuffers + ( 20 * ( MM_SIZEOF_MODCH + MM_SIZEOF_ACTCH + MM_SIZEOF_MIXCH ) ) );
+	mmGBA.soundbank = ( mm_addr ) soundbank_bin;
+
+	mmInit( &mmGBA );
+	mmSetVBlankHandler( irqVBlankGame );
+}
+
 int main( void ) {
 	REG_WAITCNT = ( 1 << 14 ) | 2;
 
-	irqInit();
-	irqSet( IRQ_VBLANK, irqVBlankPreGame );
+	irqInit( );
 	irqEnable( IRQ_VBLANK );
 
 	textAndDebugInit( );
 	timerInit( );
 
+	maxmodSetup( );
+ 
 	irqDisable( IRQ_VBLANK );
-		irqSet( IRQ_VBLANK, irqVBlankGame );
+		irqSet( IRQ_VBLANK, mmVBlank );
 	irqEnable( IRQ_VBLANK );
 
 	while ( true ) {
 		VBlankIntrWait( );
 		game.runFrame( );
-		// scanKeys( );
-
-		// down = keysDown( );
-		// held = keysHeld( );
-		// up = keysUp( );
-
-		// game.tick( timerMillis( ), down, held, up );
 	}
-
-	//seed = generateEntropy( );
-
-	// sim = new Micropolis( );
-	// assert( sim != nullptr );
-
-	// cursor.init( sim );
-	// setRenderer( &rendererMCGA );
-
-	// sim->resourceDir = "rom:/";
-
-	// //sim->generateSomeCity( 0xAABBCCDD );
-	// //sim->loadScenario( SC_TOKYO );
-	// //sim->loadScenario( SC_DETROIT, detroit_bin, detroit_bin_size );
-	// sim->loadScenario( SC_TOKYO, tokyo_bin, tokyo_bin_size );
-	// sim->setSpeed( 1 );
-	// sim->setPasses( 1 );
-	// sim->simTick( );
-	// sim->simUpdate( );
-
-	// irqDisable( IRQ_VBLANK );
-	// 	irqSet( IRQ_VBLANK, irqVBlankGame );
-	// irqEnable( IRQ_VBLANK );
-
-	// gameReady = 1;
-
-	// while ( true ) {
-	// 	tickNow = timerMillis( );
-
-	// 	processEvents( tickNow );
-	
-	// 	if ( tickNow >= nextSimTick ) {
-	// 		sim->simTick( );
-
-	// 		nextSimTick = tickNow + 100;
-	// 		needsRedraw = 1;
-	// 	}
-
-	// 	if ( tickNow >= nextAnimationTime ) {
-	// 		nextAnimationTime = tickNow + 200;
-
-	// 		renderer->getViewport( left, right, top, bottom );
-
-	// 		left>>= 3;
-	// 		right>>= 3;
-	// 		top>>= 3;
-	// 		bottom >>= 3;
-
-	// 		sim->animateTiles( left, top, left + ( SCREEN_WIDTH / 8 ), top + ( SCREEN_HEIGHT / 8 ) );
-	// 		needsRedraw = 1;
-	// 	}
-
-	// 	VBlankIntrWait( );
-	// }
 }
-
-// void processEvents( uint32_t tickNow ) {
-// 	static uint32_t nextScrollTime = 0;
-// 	static uint32_t nextPlaceTime = 0;
-// 	int dx = 0;
-// 	int dy = 0;
-//     int down = 0;
-//     int held = 0;
-//     int up = 0;
-// 	int cursorX = 0;
-// 	int cursorY = 0;
-// 	int scrollX = 0;
-// 	int scrollY = 0;
-	
-// 	scanKeys( );
-
-// 	down = keysDown( );
-// 	held = keysHeld( );
-// 	up = keysUp( );
-
-// 	if ( ( held & KEY_SELECT ) && ( down & KEY_START ) ) {
-// 		// Switch renderer
-// 		if ( renderer == &rendererMCGA )
-// 			setRenderer( &rendererTandy );
-// 		else
-// 			setRenderer( &rendererMCGA );
-
-// 		needsRedraw = 1;
-// 	}
-
-// 	if ( tickNow >= nextScrollTime ) {
-// 		dx = ( held & KEY_LEFT ) ? -1 : 0;
-// 		dx = ( held & KEY_RIGHT ) ? 1 : dx;
-
-// 		dy = ( held & KEY_UP ) ? -1 : 0;
-// 		dy = ( held & KEY_DOWN ) ? 1 : dy;
-
-// 		cursor.moveBy( dx, dy );
-
-// 		cursorX = ( cursor.getX( ) * 8 ) + 4;
-// 		cursorY = ( cursor.getY( ) * 8 ) + 4;
-
-// 		scrollX = cursorX - ( SCREEN_WIDTH / 2 );
-// 		scrollY = cursorY - ( SCREEN_HEIGHT / 2 );
-
-// 		renderer->scrollTo( scrollX, scrollY );
-
-// 		nextScrollTime = tickNow + 100;
-// 		needsRedraw = 1;
-// 	}
-
-// 	if ( down & KEY_R )
-// 		cursor.nextTool( );
-
-// 	if ( down & KEY_L )
-// 		cursor.prevTool( );
-
-// 	if ( tickNow >= nextPlaceTime ) {
-// 		if ( held & KEY_A ) {
-// 			cursor.doTool( );
-// 		}	
-
-// 		nextPlaceTime = tickNow + 100;
-// 	}
-// }

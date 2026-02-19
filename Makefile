@@ -24,10 +24,10 @@ include $(DEVKITARM)/gba_rules
 #---------------------------------------------------------------------------------
 TARGET		:= $(notdir $(CURDIR))
 BUILD		:= build
-SOURCES		:= source mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
-INCLUDES	:= include mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
+SOURCES		:= source maxmod/source/core maxmod/source/gba mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
+INCLUDES	:= include maxmod/source maxmod/source/core maxmod/include maxmod/source/gba mgba/opt/libgba micropolis/MicropolisCore/src/MicropolisEngine/src
 DATA		:= data
-MUSIC		:=
+MUSIC		:= maxmod_data
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -36,7 +36,9 @@ ARCH	:=	-mthumb -mthumb-interwork
 
 CFLAGS	:=	-g -Wall -O2\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
+		-ffunction-sections -fdata-sections\
 		-DGBA=1\
+		-D__GBA__=1\
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE)
@@ -44,7 +46,7 @@ CFLAGS	+=	$(INCLUDE)
 CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map) -Wl,--print-memory-usage -Wl,--gc-sections
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

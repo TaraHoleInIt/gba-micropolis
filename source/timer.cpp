@@ -6,21 +6,21 @@
 
 static volatile uint32_t tickCount = 0;
 
-static void irqTimer1( void ) {
+static void irqTimer3( void ) {
 	tickCount+= 65536;
 }
 
 void timerInit( void ) {
-	irqSet( IRQ_TIMER1, irqTimer1 );
-	irqEnable( IRQ_TIMER1 );
+	irqSet( IRQ_TIMER3, irqTimer3 );
+	irqEnable( IRQ_TIMER3 );
 
-	REG_TM0CNT_L = 65536 - 262;
-	REG_TM0CNT_H = 1 | TIMER_START;
+	REG_TM2CNT_L = 65536 - 262;
+	REG_TM2CNT_H = 1 | TIMER_START;
 
-	REG_TM1CNT_L = 0;
-	REG_TM1CNT_H = TIMER_COUNT | TIMER_IRQ | TIMER_START;
+	REG_TM3CNT_L = 0;
+	REG_TM3CNT_H = TIMER_COUNT | TIMER_IRQ | TIMER_START;
 }
 
 uint32_t timerMillis( void ) {
-	return REG_TM1CNT_L + tickCount;
+	return REG_TM3CNT_L + tickCount;
 }

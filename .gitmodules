@@ -1,3 +1,6 @@
 [submodule "mgba"]
 	path = mgba
 	url = https://github.com/mgba-emu/mgba
+[submodule "maxmod"]
+	path = maxmod
+	url = https://codeberg.org/blocksds/maxmod

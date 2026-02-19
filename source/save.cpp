@@ -10,7 +10,7 @@ bool saveInit( void ) {
 }
 
 void sramRead( int offset, uint8_t* dest, int length ) {
-    const uint8_t* sram = ( const uint8_t* ) SRAM;
+    volatile const uint8_t* sram = ( volatile const uint8_t* ) SRAM;
 
     assert( ( offset + length ) <= 32768 );
 
@@ -21,7 +21,7 @@ void sramRead( int offset, uint8_t* dest, int length ) {
 }
 
 void sramWrite( int offset, const uint8_t* src, int length ) {
-    uint8_t* sram = ( uint8_t* ) SRAM;
+    volatile uint8_t* sram = ( volatile uint8_t* ) SRAM;
 
     assert( ( offset + length ) <= 32768 );
 

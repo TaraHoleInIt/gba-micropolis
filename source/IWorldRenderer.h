@@ -11,6 +11,7 @@ public:
     virtual void init( void )               = 0;
     virtual void deinit( void )             = 0;
     virtual void update( unsigned short* simMap[ WORLD_W ] ) = 0;
+    virtual void vblank( void )              = 0;
 
     virtual void getViewport( int& left, int& right, int& top, int& bottom ) = 0;
 

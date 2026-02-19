@@ -27,7 +27,7 @@ static const int maxScrollY = ( WORLD_H * 8 ) - SCREEN_HEIGHT;
 
 static const uint16_t* tileMap = ( const uint16_t* ) mcga_map_bin;
 
-IWRAM_DATA volatile uint16_t MCGAWorldRenderer::mapShadow[ 32 * 32 ];
+EWRAM_DATA volatile uint16_t MCGAWorldRenderer::mapShadow[ 32 * 32 ];
 
 void MCGAWorldRenderer::init( void ) {
     dmaCopy( mcga_tiles_bin, CHAR_BASE_ADR( 0 ), mcga_tiles_bin_size );
@@ -71,10 +71,14 @@ IWRAM_CODE void MCGAWorldRenderer::update( unsigned short* simMap[ WORLD_W ] ) {
             *row++ = tileMap[ simMap[ x + sx ][ y + sy ] & 0x03FF ];
     }
 
-    dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );
+    //dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );
 
     REG_BG0HOFS = scrollX & 0x07;
     REG_BG0VOFS = scrollY & 0x07;
+}
+
+void MCGAWorldRenderer::vblank( void ) {
+    dmaCopy( ( void* ) mapShadow, MAP_BASE_ADR( 29 ), sizeof( mapShadow ) );
 }
 
 IWRAM_CODE void MCGAWorldRenderer::getViewport( int& left, int& right, int& top, int& bottom ) {
