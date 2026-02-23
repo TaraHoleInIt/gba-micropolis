@@ -128,11 +128,26 @@ void TextWindow::addItem( TextWindowItem* item ) {
 }
 
 TextWindowItem::TextWindowItem( int _x, int _y, int _width, int _height, const char* _text ) :
-    text( _text ),
     x( _x ),
     y( _y ),
     width( _width ),
     height( _height ) {
+    
+    strncpy( text, _text, sizeof( text ) );
+}
+
+TextWindowItem::TextWindowItem( int _x, int _y, const char* _text, ... ) {
+    va_list argp;
+    int len = 0;
+
+    va_start( argp, _text );
+        len = vsnprintf( text, sizeof( text ), _text, argp );
+    va_end( argp );
+
+    x = _x;
+    y = _y;
+    width = len;
+    height = 1;
 }
 
 TextWindowButton::TextWindowButton( int _x, int _y, int _width, int _height, const char* _text, ActionProc actionToDo ) :

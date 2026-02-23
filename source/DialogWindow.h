@@ -15,5 +15,6 @@ TextWindow* makeOptionsMenu( void );
 TextWindow* makeFileMenu( void );
 TextWindow* makeMainMenu( void );
 TextWindow* makeDisastersMenu( void );
+TextWindow* makeWindowsMenu( void );
 
 #endif

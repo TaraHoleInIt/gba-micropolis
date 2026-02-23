@@ -45,7 +45,7 @@ public:
 
 class TextWindowItem {
 protected:
-    const char* text;
+    char text[ 32 ];
 
     int x;
     int y;
@@ -55,6 +55,8 @@ protected:
 
 public:
     TextWindowItem( int _x, int _y, int _width, int _height, const char* _text );
+    TextWindowItem( int _x, int _y, const char* _text, ... );
+
     virtual ~TextWindowItem( void ) = default;
 
     virtual const char* getText( void ) { return text; }

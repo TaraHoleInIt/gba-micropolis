@@ -268,12 +268,103 @@ TextWindow* makeFileMenu( void ) {
     );
 }
 
+TextWindow* makeWindowsMenu( void ) {
+    return makeMenu(
+        0,
+        0,
+        20,
+        5,
+        Color_White,
+        Color_Blue,
+        "Windows",
+        {
+            {
+                "City evaluation",
+                [ ] {
+                    const char* problemStr[ 10 ] = {
+                        "CRIME        ", 
+                        "POLLUTION    ", 
+                        "HOUSING COSTS", 
+                        "TAXES        ",
+                        "TRAFFIC      ", 
+                        "UNEMPLOYMENT ", 
+                        "FIRES        "
+                    };
+                    const char* classStr[ 10 ] = {
+                        "VILLAGE", 
+                        "TOWN", 
+                        "CITY", 
+                        "CAPITAL", 
+                        "METROPOLIS", 
+                        "MEGALOPOLIS"
+                    };
+                    const char* levelStr[ 3 ] = {
+                        "Easy",
+                        "Medium",
+                        "Hard"
+                    };
+                    auto& sim = game.getSim( );
+                    int problemNo = 0;
+
+                    irqDisable( IRQ_VBLANK );
+                        sim.cityEvaluation( );
+
+                        // hackhackhack
+                        // Run one frame so we get the do evaluation message
+                        sim.simTick( );
+                    irqEnable( IRQ_VBLANK );
+
+                    TextWindow* tw = makeDialog(
+                        0,
+                        0,
+                        TextConsoleWidth,
+                        TextConsoleHeight,
+                        Color_White,
+                        Color_Blue,
+                        "City Evaluation",
+                        ""
+                    );
+
+                    if ( tw != nullptr ) {
+                        tw->addItem( new TextWindowItem( 1, 1, "Approval rating:" ) );
+
+                        tw->addItem( new TextWindowItem( 20, 2, "YEA: %d%%", sim.cityYes ) );
+                        tw->addItem( new TextWindowItem( 20, 3, "NAY: %d%%", 100 - sim.cityYes ) );
+
+                        tw->addItem( new TextWindowItem( 1, 5, "What are the worst problems?" ) );
+
+                        for ( int i = 0; i < CVP_PROBLEM_COMPLAINTS; i++ ) {
+                            if ( ( problemNo = sim.getProblemNumber( i ) ) != -1 ) {
+                                tw->addItem( new TextWindowItem( 10, 6 + i, "%s: %d%%", problemStr[ problemNo ], sim.getProblemVotes( i ) ) );
+                            }
+                        }
+
+                        tw->addItem( new TextWindowItem( 1, 12, "Statistics:" ) );
+                        tw->addItem( new TextWindowItem( 2, 13, "Population    : %d", sim.cityPop ) );
+                        tw->addItem( new TextWindowItem( 2, 14, "Net migration : %d", sim.cityPopDelta ) );
+                        tw->addItem( new TextWindowItem( 2, 15, "Assessed value: $%lu", sim.cityAssessedValue ) );
+                        tw->addItem( new TextWindowItem( 2, 16, "Category      : %s", classStr[ sim.cityClass ] ) );
+                        tw->addItem( new TextWindowItem( 2, 17, "Level         : %s", levelStr[ sim.gameLevel ] ) );
+
+                        game.wmShowWindow( tw );
+                    }
+                }
+            },
+            {
+                "Budget",
+                [ ] {
+                }
+            }
+        }
+    );
+}
+
 TextWindow* makeMainMenu( void ) {
     return makeMenu(
         0,
         0,
         15,
-        5,
+        7,
         Color_White,
         Color_Blue,
         "Main menu",
@@ -294,6 +385,12 @@ TextWindow* makeMainMenu( void ) {
                 "Disasters",
                 [ ] {
                     game.wmShowWindow( makeDisastersMenu( ) );
+                }
+            },
+            {
+                "Windows",
+                [ ] {
+                    game.wmShowWindow( makeWindowsMenu( ) );
                 }
             }
         }
